@@ -1,0 +1,117 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+---
+
+<AdminLayout title="系统设置" activeMenu="settings">
+  <div class="settings-page">
+    <h1 class="page-title">系统设置</h1>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>基础设置</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form id="settings-form" class="settings-form">
+          <div class="form-group">
+            <Label for="site-name">网站名称</Label>
+            <Input type="text" id="site-name" name="site_name" placeholder="请输入网站名称" />
+          </div>
+
+          <div class="form-group">
+            <Label for="site-url">网站地址</Label>
+            <Input type="url" id="site-url" name="site_url" placeholder="https://example.com" />
+          </div>
+
+          <div class="form-group">
+            <Label for="contact-email">联系邮箱</Label>
+            <Input type="email" id="contact-email" name="contact_email" placeholder="contact@example.com" />
+          </div>
+
+          <div class="form-actions">
+            <Button type="submit">保存设置</Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  </div>
+</AdminLayout>
+
+<script>
+  import { api } from "@/lib/api";
+  import { toast } from "sonner";
+
+  async function loadSettings() {
+    try {
+      const res = await api.getSettings();
+      if (res.code === 0) {
+        const settings = res.data;
+        Object.entries(settings).forEach(([key, value]) => {
+          const input = document.querySelector(`[name="${key}"]`) as HTMLInputElement;
+          if (input) input.value = value as string;
+        });
+      }
+    } catch (e) {
+      console.error("Failed to load settings:", e);
+    }
+  }
+
+  document.getElementById("settings-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const settings: Record<string, string> = {};
+    formData.forEach((value, key) => {
+      settings[key] = value as string;
+    });
+
+    try {
+      const res = await api.updateSettings(settings);
+      if (res.code === 0) {
+        toast.success("设置已保存");
+      } else {
+        toast.error(res.message || "保存失败");
+      }
+    } catch (e) {
+      toast.error("保存失败");
+    }
+  });
+
+  const token = localStorage.getItem('admin_token');
+  if (!token) {
+    window.location.href = '/admin/login';
+  } else {
+    loadSettings();
+  }
+</script>
+
+<style>
+  .settings-page {
+    max-width: 800px;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+
+  .settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-actions {
+    margin-top: 1rem;
+  }
+</style>

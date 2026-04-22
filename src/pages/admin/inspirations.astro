@@ -1,0 +1,476 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+---
+
+<AdminLayout title="灵感管理" activeMenu="inspirations">
+  <div class="inspirations-page">
+    <div class="page-header">
+      <h1 class="page-title">灵感管理</h1>
+      <Button id="add-btn">添加灵感</Button>
+    </div>
+
+    <Card>
+      <CardContent class="p-0">
+        <div id="inspirations-container">
+          <div class="loading">加载中...</div>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </CardContent>
+    </Card>
+
+    <!-- Modal for create/edit -->
+    <div id="modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-title">添加灵感</h2>
+          <button class="modal-close" id="modal-close">×</button>
+        </div>
+        <form id="inspiration-form" class="modal-form">
+          <input type="hidden" id="inspiration-id" name="id" />
+          <div class="form-group">
+            <label for="inspiration-title">标题</label>
+            <Input type="text" id="inspiration-title" name="title" required placeholder="请输入标题" />
+          </div>
+          <div class="form-group">
+            <label for="inspiration-content">内容</label>
+            <textarea id="inspiration-content" name="content" rows="4" placeholder="请输入内容"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="inspiration-cover">封面URL</label>
+            <Input type="text" id="inspiration-cover" name="cover_url" placeholder="https://..." />
+          </div>
+          <div class="form-group">
+            <label for="inspiration-status">状态</label>
+            <select id="inspiration-status" name="status">
+              <option value="0">草稿</option>
+              <option value="1">已发布</option>
+              <option value="2">已下架</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <Button type="button" variant="outline" id="cancel-btn">取消</Button>
+            <Button type="submit">保存</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { api } from "@/lib/api";
+
+  let currentPage = 1;
+
+  const statusMap: Record<number, { label: string; class: string }> = {
+    0: { label: "草稿", class: "bg-gray-100 text-gray-800" },
+    1: { label: "已发布", class: "bg-green-100 text-green-800" },
+    2: { label: "已下架", class: "bg-red-100 text-red-800" },
+  };
+
+  async function loadInspirations(page = 1) {
+    const container = document.getElementById("inspirations-container");
+    const paginationEl = document.getElementById("pagination");
+    if (!container || !paginationEl) return;
+
+    try {
+      const res = await api.getInspirations({ page, page_size: 20 });
+
+      if (res.code === 0) {
+        const inspirations = res.data.inspirations || [];
+        const total = res.data.total || 0;
+        const totalPages = Math.ceil(total / 20);
+
+        if (inspirations.length === 0) {
+          container.innerHTML = `<div class="empty-state">暂无数据</div>`;
+          paginationEl.innerHTML = "";
+          return;
+        }
+
+        container.innerHTML = `
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>标题</th>
+                <th>封面</th>
+                <th>状态</th>
+                <th>点赞数</th>
+                <th>创建时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${inspirations.map((item: any) => `
+                <tr>
+                  <td class="font-mono text-sm">${item.id}</td>
+                  <td class="max-w-xs truncate">${item.title || "-"}</td>
+                  <td>${item.cover_url ? `<img src="${item.cover_url}" alt="封面" class="cover-thumb" />` : "-"}</td>
+                  <td><span class="badge ${statusMap[item.status]?.class || "bg-gray-100"}">${statusMap[item.status]?.label || "未知"}</span></td>
+                  <td>${item.likes || 0}</td>
+                  <td class="text-muted text-sm">${new Date(item.created_at).toLocaleDateString("zh-CN")}</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="action-link" data-action="edit" data-id="${item.id}">编辑</button>
+                      <button class="action-link text-red-600" data-action="delete" data-id="${item.id}">删除</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+
+        paginationEl.innerHTML = totalPages > 1 ? `
+          <a href="#" class="page-btn ${page <= 1 ? 'disabled' : ''}" data-page="${page - 1}">上一页</a>
+          <span class="page-info">第 ${page} / ${totalPages} 页，共 ${total} 条</span>
+          <a href="#" class="page-btn ${page >= totalPages ? 'disabled' : ''}" data-page="${page + 1}">下一页</a>
+        ` : "";
+      } else {
+        container.innerHTML = `<div class="error-message">${res.message}</div>`;
+      }
+    } catch (e) {
+      container.innerHTML = `<div class="error-message">加载失败</div>`;
+    }
+  }
+
+  // Modal handling
+  const modal = document.getElementById("modal")!;
+  const modalTitle = document.getElementById("modal-title")!;
+  const form = document.getElementById("inspiration-form") as HTMLFormElement;
+
+  function openModal(isEdit: boolean, data?: any) {
+    modalTitle.textContent = isEdit ? "编辑灵感" : "添加灵感";
+    (document.getElementById("inspiration-id") as HTMLInputElement).value = data?.id || "";
+    (document.getElementById("inspiration-title") as HTMLInputElement).value = data?.title || "";
+    (document.getElementById("inspiration-content") as HTMLTextAreaElement).value = data?.content || "";
+    (document.getElementById("inspiration-cover") as HTMLInputElement).value = data?.cover_url || "";
+    (document.getElementById("inspiration-status") as HTMLSelectElement).value = String(data?.status ?? 1);
+    modal.classList.remove("hidden");
+  }
+
+  function closeModal() {
+    modal.classList.add("hidden");
+    form.reset();
+  }
+
+  document.getElementById("add-btn")?.addEventListener("click", () => openModal(false));
+  document.getElementById("modal-close")?.addEventListener("click", closeModal);
+  document.getElementById("cancel-btn")?.addEventListener("click", closeModal);
+  document.querySelector(".modal-backdrop")?.addEventListener("click", closeModal);
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const id = (document.getElementById("inspiration-id") as HTMLInputElement).value;
+    const data = {
+      title: (document.getElementById("inspiration-title") as HTMLInputElement).value,
+      content: (document.getElementById("inspiration-content") as HTMLTextAreaElement).value,
+      cover_url: (document.getElementById("inspiration-cover") as HTMLInputElement).value,
+      status: parseInt((document.getElementById("inspiration-status") as HTMLSelectElement).value),
+    };
+
+    try {
+      let res;
+      if (id) {
+        res = await api.updateInspiration(parseInt(id), data);
+      } else {
+        res = await api.createInspiration(data);
+      }
+      if (res.code === 0) {
+        closeModal();
+        loadInspirations(currentPage);
+      } else {
+        alert(res.message || "保存失败");
+      }
+    } catch (e) {
+      alert("保存失败");
+    }
+  });
+
+  document.getElementById("inspirations-container")?.addEventListener("click", async (e) => {
+    const target = e.target as HTMLElement;
+    const action = target.dataset.action;
+    const id = target.dataset.id;
+
+    if (!action || !id) return;
+
+    if (action === "edit") {
+      try {
+        const res = await api.getInspirationDetail(parseInt(id));
+        if (res.code === 0) {
+          openModal(true, res.data.inspiration);
+        }
+      } catch (e) {
+        alert("加载失败");
+      }
+    } else if (action === "delete") {
+      if (!confirm("确定删除该灵感？")) return;
+      try {
+        const res = await api.deleteInspiration(parseInt(id));
+        if (res.code === 0) {
+          loadInspirations(currentPage);
+        } else {
+          alert(res.message || "删除失败");
+        }
+      } catch (e) {
+        alert("删除失败");
+      }
+    }
+  });
+
+  document.getElementById("pagination")?.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    if (target.classList.contains("page-btn") && !target.classList.contains("disabled")) {
+      e.preventDefault();
+      currentPage = parseInt(target.dataset.page || "1");
+      loadInspirations(currentPage);
+    }
+  });
+
+  const token = localStorage.getItem('admin_token');
+  if (!token) {
+    window.location.href = '/admin/login';
+  } else {
+    loadInspirations();
+  }
+</script>
+
+<style>
+  .inspirations-page {
+    max-width: 1400px;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .loading, .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+  }
+
+  .error-message {
+    padding: 1rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    border-radius: 0.5rem;
+    margin: 1rem;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table th {
+    background: #fafafa;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .cover-thumb {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 0.25rem;
+    border: 1px solid var(--border);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .action-link {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--primary);
+    text-decoration: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 0.375rem;
+  }
+
+  .action-link:hover {
+    background: rgba(233, 69, 96, 0.1);
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .page-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    color: var(--text);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+  }
+
+  .page-btn:hover:not(.disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .page-btn.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .page-info {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  /* Modal styles */
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal.hidden {
+    display: none;
+  }
+
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-content {
+    position: relative;
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .modal-close {
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    border-radius: 0.375rem;
+    color: var(--text-muted);
+  }
+
+  .modal-close:hover {
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .form-group textarea {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    resize: vertical;
+    font-family: inherit;
+  }
+
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .form-group select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    background: white;
+  }
+
+  .form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+  }
+</style>

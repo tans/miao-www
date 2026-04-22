@@ -1,0 +1,427 @@
+---
+
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+---
+
+<AdminLayout title="任务详情" activeMenu="tasks">
+  <div class="task-detail-page">
+    <div class="page-header">
+      <a href="/admin/tasks" class="back-link">← 返回列表</a>
+      <h1 class="page-title">任务详情</h1>
+    </div>
+
+    <div id="task-container">
+      <div class="loading">加载中...</div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { api } from "@/lib/api";
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const taskId = urlParams.get("id");
+
+  if (!taskId) {
+    document.getElementById("task-container")!.innerHTML = `<div class="error-message">缺少任务ID参数</div>`;
+  }
+
+  const statusMap: Record<number, { label: string; class: string }> = {
+    1: { label: "待审核", class: "bg-yellow-100 text-yellow-800" },
+    2: { label: "已上架", class: "bg-green-100 text-green-800" },
+    3: { label: "进行中", class: "bg-blue-100 text-blue-800" },
+    4: { label: "已结束", class: "bg-gray-100 text-gray-800" },
+    5: { label: "已取消", class: "bg-red-100 text-red-800" },
+  };
+
+  async function loadTask() {
+    const container = document.getElementById("task-container");
+    if (!container || !taskId) return;
+
+    try {
+      const res = await api.getTaskDetail(parseInt(taskId));
+      if (res.code === 0) {
+        const task = res.data.task;
+        container.innerHTML = `
+          <div class="detail-grid">
+            <Card class="col-span-2">
+              <CardHeader>
+                <CardTitle>基本信息</CardTitle>
+              </CardHeader>
+              <CardContent class="info-list">
+                <div class="info-item">
+                  <span class="info-label">任务ID</span>
+                  <span class="info-value font-mono">${task.id}</span>
+                </div>
+                <div class="info-item full-width">
+                  <span class="info-label">标题</span>
+                  <span class="info-value">${task.title}</span>
+                </div>
+                <div class="info-item full-width">
+                  <span class="info-label">描述</span>
+                  <span class="info-value description">${task.description || "-"}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">商家ID</span>
+                  <span class="info-value font-mono">${task.business_id}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">状态</span>
+                  <span class="info-value"><span class="badge ${statusMap[task.status]?.class || "bg-gray-100"}">${statusMap[task.status]?.label || "未知"}</span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">创建时间</span>
+                  <span class="info-value">${new Date(task.created_at).toLocaleString("zh-CN")}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>价格与预算</CardTitle>
+              </CardHeader>
+              <CardContent class="info-list">
+                <div class="info-item">
+                  <span class="info-label">单价</span>
+                  <span class="info-value font-mono text-lg text-green-600">¥${(task.unit_price || 0).toFixed(2)}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">总预算</span>
+                  <span class="info-value font-mono">¥${(task.total_budget || 0).toFixed(2)}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">已支付</span>
+                  <span class="info-value font-mono">¥${(task.paid_amount || 0).toFixed(2)}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">剩余数量</span>
+                  <span class="info-value">${task.remaining_count} / ${Math.floor(task.total_budget / task.unit_price)}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>进度</CardTitle>
+              </CardHeader>
+              <CardContent class="info-list">
+                <div class="info-item">
+                  <span class="info-label">已认领</span>
+                  <span class="info-value">${task.claimed_count || 0}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">已提交</span>
+                  <span class="info-value">${task.submitted_count || 0}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            ${task.cover_image ? `
+            <Card>
+              <CardHeader>
+                <CardTitle>封面图</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <img src="${task.cover_image}" alt="封面" class="cover-image" />
+              </CardContent>
+            </Card>
+            ` : ""}
+          </div>
+
+          ${task.status === 1 ? `
+          <Card class="mt-6">
+            <CardHeader>
+              <CardTitle>审核操作</CardTitle>
+            </CardHeader>
+            <CardContent class="actions">
+              <button class="btn btn-success" id="approve-btn">通过审核</button>
+              <button class="btn btn-danger" id="reject-btn">拒绝</button>
+            </CardContent>
+          </Card>
+          ` : ""}
+
+          <Card class="mt-6">
+            <CardHeader>
+              <CardTitle>投稿列表</CardTitle>
+            </CardHeader>
+            <CardContent class="p-0">
+              <div id="claims-container">
+                <div class="loading-sm">加载中...</div>
+              </div>
+            </CardContent>
+          </Card>
+        `;
+
+        document.getElementById("approve-btn")?.addEventListener("click", async () => {
+          if (!confirm("确定通过该任务审核？")) return;
+          try {
+            const res = await api.reviewTask(parseInt(taskId), 2);
+            if (res.code === 0) {
+              alert("已通过审核");
+              loadTask();
+            } else {
+              alert("操作失败: " + res.message);
+            }
+          } catch (e) {
+            alert("操作失败");
+          }
+        });
+
+        document.getElementById("reject-btn")?.addEventListener("click", async () => {
+          if (!confirm("确定拒绝该任务？")) return;
+          try {
+            const res = await api.reviewTask(parseInt(taskId), 5);
+            if (res.code === 0) {
+              alert("已拒绝");
+              loadTask();
+            } else {
+              alert("操作失败: " + res.message);
+            }
+          } catch (e) {
+            alert("操作失败");
+          }
+        });
+
+        loadClaims();
+      } else {
+        container.innerHTML = `<div class="error-message">${res.message}</div>`;
+      }
+    } catch (e) {
+      container.innerHTML = `<div class="error-message">加载失败</div>`;
+    }
+  }
+
+  async function loadClaims() {
+    const container = document.getElementById("claims-container");
+    if (!container || !taskId) return;
+
+    try {
+      const res = await api.request<{ claims: any[] }>(`/api/v1/admin/claims?task_id=${taskId}`);
+      if (res.code === 0) {
+        const claims = res.data.claims || [];
+        if (claims.length === 0) {
+          container.innerHTML = `<div class="empty-state">暂无投稿</div>`;
+          return;
+        }
+        container.innerHTML = `
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>创作者</th>
+                <th>状态</th>
+                <th>提交时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${claims.map((claim: any) => `
+                <tr>
+                  <td class="font-mono">${claim.id}</td>
+                  <td class="font-mono">${claim.creator_id}</td>
+                  <td><span class="badge ${statusMap[claim.status]?.class || "bg-gray-100"}">${statusMap[claim.status]?.label || "未知"}</span></td>
+                  <td class="text-muted">${claim.submit_at ? new Date(claim.submit_at).toLocaleString("zh-CN") : "-"}</td>
+                  <td><a href="/admin/work-detail?id=${claim.work_id}" class="action-link">查看作品</a></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      }
+    } catch (e) {
+      container.innerHTML = `<div class="error-message">加载投稿失败</div>`;
+    }
+  }
+
+  const token = localStorage.getItem('admin_token');
+  if (!token) {
+    window.location.href = '/admin/login';
+  } else {
+    loadTask();
+  }
+</script>
+
+<style>
+  .task-detail-page {
+    max-width: 1200px;
+  }
+
+  .page-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .back-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    display: inline-block;
+  }
+
+  .back-link:hover {
+    color: var(--primary);
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .loading, .loading-sm, .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+  }
+
+  .loading-sm {
+    padding: 1rem;
+  }
+
+  .error-message {
+    padding: 1rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    border-radius: 0.5rem;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .col-span-2 {
+    grid-column: span 2;
+  }
+
+  @media (max-width: 768px) {
+    .col-span-2 {
+      grid-column: span 1;
+    }
+  }
+
+  :global(.info-list) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .info-item:last-child {
+    border-bottom: none;
+  }
+
+  .info-item.full-width {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .info-label {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    min-width: 80px;
+  }
+
+  .info-value {
+    font-weight: 500;
+    text-align: right;
+  }
+
+  .info-item.full-width .info-value {
+    text-align: left;
+  }
+
+  .description {
+    white-space: pre-wrap;
+    font-weight: normal;
+    color: var(--text);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .cover-image {
+    max-width: 300px;
+    border-radius: 0.5rem;
+  }
+
+  .actions {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn {
+    padding: 0.625rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-success {
+    background: #10b981;
+    color: white;
+  }
+
+  .btn-success:hover {
+    background: #059669;
+  }
+
+  .btn-danger {
+    background: #ef4444;
+    color: white;
+  }
+
+  .btn-danger:hover {
+    background: #dc2626;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table th {
+    background: #fafafa;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .data-table td {
+    font-size: 0.875rem;
+  }
+
+  .action-link {
+    color: var(--primary);
+    text-decoration: none;
+  }
+
+  .action-link:hover {
+    text-decoration: underline;
+  }
+</style>

@@ -1,0 +1,292 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+---
+
+<AdminLayout title="资金管理" activeMenu="finance">
+  <div class="finance-page">
+    <h1 class="page-title">资金管理</h1>
+
+    <div id="stats-container">
+      <div class="loading">加载中...</div>
+    </div>
+
+    <Card class="mt-6">
+      <CardHeader>
+        <CardTitle>交易记录</CardTitle>
+      </CardHeader>
+      <CardContent class="p-0">
+        <div id="transactions-container">
+          <div class="loading">加载中...</div>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </CardContent>
+    </Card>
+  </div>
+</AdminLayout>
+
+<script>
+  import { api } from "@/lib/api";
+
+  let currentPage = 1;
+
+  async function loadFinance(page = 1) {
+    const statsContainer = document.getElementById("stats-container");
+    const txContainer = document.getElementById("transactions-container");
+    const paginationEl = document.getElementById("pagination");
+    if (!statsContainer || !txContainer || !paginationEl) return;
+
+    try {
+      const [statsRes, txRes] = await Promise.all([
+        api.getFinanceStats(),
+        api.getFinanceTransactions({ page, page_size: 20 })
+      ]);
+
+      // Stats
+      if (statsRes.code === 0) {
+        const stats = statsRes.data;
+        statsContainer.innerHTML = `
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span>总收入</span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">¥${(stats.total_revenue || 0).toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div class="stat-card success">
+              <div class="stat-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                  <polyline points="17 6 23 6 23 12"></polyline>
+                </svg>
+                <span>今日收入</span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">¥${(stats.today_revenue || 0).toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>总交易笔数</span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">${stats.total_transactions || 0}</span>
+                <span class="stat-label">笔</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Transactions
+      if (txRes.code === 0) {
+        const transactions = txRes.data.transactions || [];
+        const total = txRes.data.total || 0;
+        const totalPages = Math.ceil(total / 20);
+
+        if (transactions.length === 0) {
+          txContainer.innerHTML = `<div class="empty-state">暂无数据</div>`;
+          paginationEl.innerHTML = "";
+          return;
+        }
+
+        txContainer.innerHTML = `
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>用户ID</th>
+                <th>类型</th>
+                <th>金额</th>
+                <th>余额变化</th>
+                <th>备注</th>
+                <th>时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${transactions.map((tx: any) => `
+                <tr>
+                  <td class="font-mono text-sm">${tx.id}</td>
+                  <td class="font-mono">${tx.user_id}</td>
+                  <td>${tx.type}</td>
+                  <td class="font-mono">
+                    <span class="${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}">
+                      ${tx.amount >= 0 ? "+" : ""}¥${(tx.amount || 0).toFixed(2)}
+                    </span>
+                  </td>
+                  <td class="font-mono text-muted">
+                    ${(tx.balance_before || 0).toFixed(2)} → ${(tx.balance_after || 0).toFixed(2)}
+                  </td>
+                  <td class="text-muted text-sm">${tx.remark || "-"}</td>
+                  <td class="text-muted text-sm">${new Date(tx.created_at).toLocaleString("zh-CN")}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+
+        paginationEl.innerHTML = totalPages > 1 ? `
+          <a href="#" class="page-btn ${page <= 1 ? 'disabled' : ''}" data-page="${page - 1}">上一页</a>
+          <span class="page-info">第 ${page} / ${totalPages} 页，共 ${total} 条</span>
+          <a href="#" class="page-btn ${page >= totalPages ? 'disabled' : ''}" data-page="${page + 1}">下一页</a>
+        ` : "";
+      }
+    } catch (e) {
+      statsContainer.innerHTML = `<div class="error-message">加载失败</div>`;
+      txContainer.innerHTML = `<div class="error-message">加载失败</div>`;
+    }
+  }
+
+  document.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    if (target.classList.contains("page-btn") && !target.classList.contains("disabled")) {
+      e.preventDefault();
+      currentPage = parseInt(target.dataset.page || "1");
+      loadFinance(currentPage);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  });
+
+  const token = localStorage.getItem('admin_token');
+  if (!token) {
+    window.location.href = '/admin/login';
+  } else {
+    loadFinance();
+  }
+</script>
+
+<style>
+  .finance-page {
+    max-width: 1400px;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+
+  .loading, .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+  }
+
+  .error-message {
+    padding: 1rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    border-radius: 0.5rem;
+    margin: 1rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .stat-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: #fafafa;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .stat-card.success .stat-header svg {
+    color: #10b981;
+  }
+
+  .stat-content {
+    padding: 1.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table th {
+    background: #fafafa;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .page-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    color: var(--text);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+  }
+
+  .page-btn:hover:not(.disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .page-btn.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .page-info {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+</style>

@@ -1,0 +1,348 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+---
+
+<AdminLayout title="申诉详情" activeMenu="appeals">
+  <div class="appeal-detail-page">
+    <div class="page-header">
+      <a href="/admin/appeals" class="back-link">← 返回列表</a>
+      <h1 class="page-title">申诉详情</h1>
+    </div>
+
+    <div id="appeal-container">
+      <div class="loading">加载中...</div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { api } from "@/lib/api";
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const appealId = urlParams.get("id");
+
+  if (!appealId) {
+    document.getElementById("appeal-container")!.innerHTML = `<div class="error-message">缺少申诉ID参数</div>`;
+  }
+
+  const statusMap: Record<number, { label: string; class: string }> = {
+    1: { label: "待处理", class: "bg-yellow-100 text-yellow-800" },
+    2: { label: "已处理", class: "bg-green-100 text-green-800" },
+    3: { label: "已关闭", class: "bg-gray-100 text-gray-800" },
+  };
+
+  const typeMap: Record<number, string> = {
+    1: "任务申诉",
+    2: "提现申诉",
+    3: "其他",
+  };
+
+  async function loadAppeal() {
+    const container = document.getElementById("appeal-container");
+    if (!container || !appealId) return;
+
+    try {
+      const res = await api.getAppealDetail(parseInt(appealId));
+      if (res.code === 0) {
+        const appeal = res.data.appeal;
+        container.innerHTML = `
+          <div class="detail-grid">
+            <Card class="col-span-2">
+              <CardHeader>
+                <CardTitle>申诉信息</CardTitle>
+              </CardHeader>
+              <CardContent class="info-list">
+                <div class="info-item">
+                  <span class="info-label">申诉ID</span>
+                  <span class="info-value font-mono">${appeal.id}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">类型</span>
+                  <span class="info-value"><span class="badge-outline">${typeMap[appeal.type] || "未知"}</span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">状态</span>
+                  <span class="info-value"><span class="badge ${statusMap[appeal.status]?.class || "bg-gray-100"}">${statusMap[appeal.status]?.label || "未知"}</span></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">任务ID</span>
+                  <span class="info-value font-mono"><a href="/admin/task-detail?id=${appeal.task_id}" class="link">${appeal.task_id}</a></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">认领ID</span>
+                  <span class="info-value font-mono">${appeal.claim_id}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">用户ID</span>
+                  <span class="info-value font-mono"><a href="/admin/user-detail?id=${appeal.user_id}" class="link">${appeal.user_id}</a></span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">创建时间</span>
+                  <span class="info-value">${appeal.created_at ? new Date(appeal.created_at).toLocaleString("zh-CN") : "-"}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">处理时间</span>
+                  <span class="info-value">${appeal.handle_at ? new Date(appeal.handle_at).toLocaleString("zh-CN") : "-"}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card class="col-span-2">
+              <CardHeader>
+                <CardTitle>申诉原因</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div class="reason-content">${appeal.reason || "无"}</div>
+              </CardContent>
+            </Card>
+
+            ${appeal.reply ? `
+            <Card class="col-span-2">
+              <CardHeader>
+                <CardTitle>处理回复</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div class="reply-content">${appeal.reply}</div>
+              </CardContent>
+            </Card>
+            ` : ""}
+
+            ${appeal.status === 1 ? `
+            <Card>
+              <CardHeader>
+                <CardTitle>处理申诉</CardTitle>
+              </CardHeader>
+              <CardContent class="handle-form">
+                <div class="form-group">
+                  <label>处理结果</label>
+                  <select id="handle-status" class="select-input">
+                    <option value="2">通过申诉</option>
+                    <option value="3">拒绝申诉</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>回复说明</label>
+                  <textarea id="handle-reply" class="textarea" rows="4" placeholder="请输入处理说明..."></textarea>
+                </div>
+                <button class="btn btn-primary" id="submit-handle">提交处理</button>
+              </CardContent>
+            </Card>
+            ` : ""}
+          </div>
+        `;
+
+        document.getElementById("submit-handle")?.addEventListener("click", async () => {
+          const status = parseInt((document.getElementById("handle-status") as HTMLSelectElement).value);
+          const reply = (document.getElementById("handle-reply") as HTMLTextAreaElement).value;
+
+          if (!reply.trim()) {
+            alert("请输入处理说明");
+            return;
+          }
+
+          if (!confirm("确定提交处理结果？")) return;
+
+          try {
+            const res = await api.handleAppeal(parseInt(appealId), status, reply);
+            if (res.code === 0) {
+              alert("处理成功");
+              loadAppeal();
+            } else {
+              alert("处理失败: " + res.message);
+            }
+          } catch (e) {
+            alert("处理失败");
+          }
+        });
+      } else {
+        container.innerHTML = `<div class="error-message">${res.message}</div>`;
+      }
+    } catch (e) {
+      container.innerHTML = `<div class="error-message">加载失败</div>`;
+    }
+  }
+
+  const token = localStorage.getItem('admin_token');
+  if (!token) {
+    window.location.href = '/admin/login';
+  } else {
+    loadAppeal();
+  }
+</script>
+
+<style>
+  .appeal-detail-page {
+    max-width: 1200px;
+  }
+
+  .page-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .back-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    display: inline-block;
+  }
+
+  .back-link:hover {
+    color: var(--primary);
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+  }
+
+  .error-message {
+    padding: 1rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    border-radius: 0.5rem;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .col-span-2 {
+    grid-column: span 2;
+  }
+
+  @media (max-width: 768px) {
+    .col-span-2 {
+      grid-column: span 1;
+    }
+  }
+
+  :global(.info-list) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .info-item:last-child {
+    border-bottom: none;
+  }
+
+  .info-label {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
+  .info-value {
+    font-weight: 500;
+  }
+
+  .link {
+    color: var(--primary);
+    text-decoration: none;
+  }
+
+  .link:hover {
+    text-decoration: underline;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .badge-outline {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+  }
+
+  .reason-content, .reply-content {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .handle-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .select-input {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+  }
+
+  .textarea {
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    resize: vertical;
+    font-family: inherit;
+  }
+
+  .textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .btn {
+    padding: 0.625rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-hover);
+  }
+</style>

@@ -1,0 +1,250 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+---
+
+<AdminLayout title="数据概览" activeMenu="dashboard">
+  <div class="dashboard">
+    <h1 class="page-title">数据概览</h1>
+
+    <div class="stats-grid" id="stats-container">
+      <div class="loading">加载中...</div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { api } from "@/lib/api";
+
+  async function loadDashboard() {
+    const container = document.getElementById("stats-container");
+    if (!container) return;
+
+    try {
+      const res = await api.getDashboard();
+      if (res.code === 0) {
+        const stats = res.data;
+        container.innerHTML = `
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span>总用户数</span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">${stats.total_users}</span>
+                <span class="stat-label">人</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                <span>总任务数</span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">${stats.total_tasks}</span>
+                <span class="stat-label">个</span>
+              </div>
+            </div>
+
+            <div class="stat-card highlight">
+              <div class="stat-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>进行中任务</span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">${stats.active_tasks}</span>
+                <span class="stat-label">个</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <span>总作品数</span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">${stats.total_works}</span>
+                <span class="stat-label">个</span>
+              </div>
+            </div>
+
+            <div class="stat-card warning">
+              <div class="stat-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>待审核任务</span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">${stats.pending_tasks}</span>
+                <span class="stat-label">个</span>
+              </div>
+            </div>
+
+            <div class="stat-card warning">
+              <div class="stat-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>待处理申诉</span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">${stats.pending_appeals}</span>
+                <span class="stat-label">个</span>
+              </div>
+            </div>
+
+            <div class="stat-card success">
+              <div class="stat-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span>总收入</span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">¥${(stats.total_revenue || 0).toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div class="stat-card success">
+              <div class="stat-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                  <polyline points="17 6 23 6 23 12"></polyline>
+                </svg>
+                <span>今日收入</span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">¥${(stats.today_revenue || 0).toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `<div class="error-message">${res.message}</div>`;
+      }
+    } catch (e) {
+      container.innerHTML = `<div class="error-message">加载失败，请刷新页面</div>`;
+    }
+  }
+
+  // Check auth first
+  const token = localStorage.getItem('admin_token');
+  if (!token) {
+    window.location.href = '/admin/login';
+  } else {
+    loadDashboard();
+  }
+</script>
+
+<style>
+  .dashboard {
+    max-width: 1400px;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--text);
+  }
+
+  .loading {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+  }
+
+  .error-message {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  }
+
+  .stat-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: #fafafa;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .stat-header svg {
+    color: var(--text-muted);
+  }
+
+  .stat-card.warning .stat-header svg {
+    color: #f59e0b;
+  }
+
+  .stat-card.success .stat-header svg {
+    color: #10b981;
+  }
+
+  .stat-content {
+    padding: 1.25rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+</style>
