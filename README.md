@@ -1,43 +1,39 @@
-# Astro Starter Kit: Minimal
+# miao-www
 
-```sh
-npm create astro@latest -- --template minimal
+miao 项目管理后台，基于 Astro + shadcn/ui。
+
+## 启动开发服务器
+
+```bash
+npm install
+npm run dev
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+访问 http://localhost:4321
 
-## 🚀 Project Structure
+## 构建生产版本
 
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+```bash
+npm run build
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## 配置
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+复制 `.env.example` 为 `.env`，填入以下变量：
 
-Any static assets, like images, can be placed in the `public/` directory.
+| 变量 | 说明 |
+|------|------|
+| `API_BASE_URL` | API 基础地址 |
+| `API_TOKEN` | API 认证令牌 |
 
-## 🧞 Commands
+## 项目结构
 
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+```
+src/
+├── components/ui/    # shadcn/ui 组件
+├── layouts/          # 布局组件
+├── lib/               # 工具函数和 API 封装
+├── pages/             # 页面路由
+│   └── admin/         # 管理后台页面
+└── styles/            # 全局样式
+```
