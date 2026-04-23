@@ -8,8 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { ChevronDownIcon } from "lucide-react";
 
 interface Column {
   name: string;
@@ -31,6 +34,9 @@ export function Database() {
   const [loading, setLoading] = useState(true);
   const [schemaTable, setSchemaTable] = useState("");
   const [sqlInput, setSqlInput] = useState("");
+  const [tableSearchOpen, setTableSearchOpen] = useState(false);
+  const [tableSearch, setTableSearch] = useState("");
+  const [selectedTable, setSelectedTable] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -58,21 +64,39 @@ export function Database() {
     }
   }
 
-  async function loadSchema(tableName: string) {
+  async function loadTableData(tableName: string) {
+    setSelectedTable(tableName);
     setSchemaTable(tableName);
     setSchema(null);
     setQueryResult(null);
     setQueryError("");
 
+    // Load schema
     try {
-      const res = await api.getTableSchema(tableName);
-      if (res.code === 0) {
-        setSchema(res.data.schema);
-      } else {
-        toast.error(res.message);
+      const schemaRes = await api.getTableSchema(tableName);
+      if (schemaRes.code === 0) {
+        setSchema(schemaRes.data.schema);
       }
     } catch (e) {
-      toast.error("加载失败");
+      console.error("加载结构失败", e);
+    }
+
+    // Load 100 rows
+    try {
+      const dataRes = await api.executeQuery(`SELECT * FROM \`${tableName}\` LIMIT 100`);
+      if (dataRes.code === 0) {
+        const rows = dataRes.data.result || [];
+        if (rows.length > 0) {
+          setQueryResult({
+            columns: Object.keys(rows[0]),
+            rows,
+          });
+        }
+      } else {
+        setQueryError(dataRes.message);
+      }
+    } catch (e) {
+      console.error("加载数据失败", e);
     }
   }
 
@@ -140,8 +164,8 @@ export function Database() {
                 id="sql-input"
                 ref={textareaRef}
                 className="font-mono"
-                rows={4}
-                placeholder="SELECT * FROM users LIMIT 10;"
+                rows={3}
+                placeholder="SELECT ..."
                 value={sqlInput}
                 onChange={(e) => setSqlInput(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -157,54 +181,39 @@ export function Database() {
 
       <Card>
         <CardHeader>
-          <CardTitle>数据库表</CardTitle>
+          <CardTitle>选择数据表</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">加载中...</div>
-          ) : tables.length === 0 ? (
-            <Alert className="m-4">
-              <AlertDescription>暂无数据表</AlertDescription>
-            </Alert>
+            <div className="text-center py-4 text-muted-foreground">加载中...</div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4">
-              {tables.map((table) => (
-                <div
-                  key={table}
-                  className="flex flex-col items-center gap-2 p-4 bg-muted/30 border border-border rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="text-muted-foreground"
-                  >
-                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                  </svg>
-                  <span className="font-medium text-sm text-center">{table}</span>
-                  <div className="flex gap-2">
-                    <button
-                      className="text-xs px-2 py-1 bg-background border border-border rounded hover:border-primary hover:text-primary transition-colors"
-                      onClick={() => loadSchema(table)}
-                    >
-                      结构
-                    </button>
-                    <button
-                      className="text-xs px-2 py-1 bg-background border border-border rounded hover:border-primary hover:text-primary transition-colors"
-                      onClick={() => setSqlInput(`SELECT * FROM ${table} LIMIT 50;`)}
-                    >
-                      查询
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Popover open={tableSearchOpen} onOpenChange={setTableSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={tableSearchOpen} className="w-[300px] justify-between">
+                  {selectedTable || "选择表..."}
+                  <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0">
+                <Command>
+                  <CommandInput placeholder="搜索表名..." value={tableSearch} onValueChange={setTableSearch} />
+                  <CommandList>
+                    <CommandEmpty>未找到表</CommandEmpty>
+                    <CommandGroup>
+                      {tables.filter(t => t.toLowerCase().includes(tableSearch.toLowerCase())).map(table => (
+                        <CommandItem key={table} value={table} onSelect={() => {
+                          setTableSearch(table);
+                          loadTableData(table);
+                          setTableSearchOpen(false);
+                        }}>
+                          {table}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           )}
         </CardContent>
       </Card>

@@ -47,7 +47,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
           <div class="flex-1 min-w-48">
             <Label class="mb-1 block">选择用户:</Label>
             <div class="relative">
-            <select id="sim-user-select" onchange="onUserSelect()" class="h-8 w-full rounded-lg border border-input bg-transparent pl-3 pr-8 py-1 text-sm appearance-none cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            <select id="sim-user-select" class="h-8 w-full rounded-lg border border-input bg-transparent pl-3 pr-8 py-1 text-sm appearance-none cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
               <option value="">-- 手动输入Token --</option>
             </select>
             <svg class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -485,6 +485,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
   document.getElementById('search-api')?.addEventListener('input', filterAPI);
   document.getElementById('filter-tag')?.addEventListener('change', filterAPI);
+  document.getElementById('sim-user-select')?.addEventListener('change', onUserSelect);
 
   // Initialize
   const token = localStorage.getItem('admin_token');

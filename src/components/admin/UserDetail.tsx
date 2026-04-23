@@ -10,10 +10,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
-interface UserDetailProps {
-  userId: string;
-}
-
 interface User {
   id: number;
   username: string;
@@ -49,7 +45,7 @@ const roleMap: Record<number, string> = {
   3: "管理员",
 };
 
-export function UserDetail({ userId }: UserDetailProps) {
+export function UserDetail() {
   const [user, setUser] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,15 +58,21 @@ export function UserDetail({ userId }: UserDetailProps) {
       return;
     }
 
-    loadUser();
-  }, [userId]);
+    const userId = new URLSearchParams(window.location.search).get("id");
+    if (!userId) {
+      setError("无效的用户ID");
+      setLoading(false);
+      return;
+    }
+    loadUser(userId);
+  }, []);
 
-  async function loadUser() {
+  async function loadUser(userId: string) {
     try {
       const res = await api.getUserDetail(parseInt(userId));
       if (res.code === 0) {
         setUser(res.data.user);
-        loadTransactions();
+        loadTransactions(userId);
       } else {
         setError(res.message);
         setLoading(false);
@@ -81,7 +83,7 @@ export function UserDetail({ userId }: UserDetailProps) {
     }
   }
 
-  async function loadTransactions() {
+  async function loadTransactions(userId: string) {
     try {
       const res = await api.request<{ transactions: Transaction[] }>(`/api/v1/admin/users/${userId}/transactions`);
       if (res.code === 0) {
@@ -95,13 +97,15 @@ export function UserDetail({ userId }: UserDetailProps) {
   }
 
   async function handleUpdateStatus() {
+    const userId = new URLSearchParams(window.location.search).get("id");
+    if (!userId) return;
     const statusSelect = document.getElementById("status-select") as HTMLSelectElement;
     const status = parseInt(statusSelect.value);
     try {
       const res = await api.updateUserStatus(parseInt(userId), status);
       if (res.code === 0) {
         toast.success("状态已更新");
-        loadUser();
+        loadUser(userId);
       } else {
         toast.error("更新失败: " + res.message);
       }

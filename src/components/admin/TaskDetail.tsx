@@ -9,10 +9,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
-interface TaskDetailProps {
-  taskId: string;
-}
-
 interface Task {
   id: number;
   title: string;
@@ -45,7 +41,7 @@ const statusMap: Record<number, { label: string; variant: "default" | "secondary
   5: { label: "已取消", variant: "destructive" },
 };
 
-export function TaskDetail({ taskId }: TaskDetailProps) {
+export function TaskDetail() {
   const [task, setTask] = useState<Task | null>(null);
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,15 +54,23 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
       return;
     }
 
-    loadTask();
-  }, [taskId]);
+    const taskId = new URLSearchParams(window.location.search).get("id");
+    const id = parseInt(taskId || "");
+    if (isNaN(id)) {
+      setError("无效的任务ID");
+      setLoading(false);
+      return;
+    }
 
-  async function loadTask() {
+    loadTask(id);
+  }, []);
+
+  async function loadTask(id: number) {
     try {
-      const res = await api.getTaskDetail(parseInt(taskId));
+      const res = await api.getTaskDetail(id);
       if (res.code === 0) {
         setTask(res.data.task);
-        loadClaims();
+        loadClaims(id);
       } else {
         setError(res.message);
         setLoading(false);
@@ -77,9 +81,9 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
     }
   }
 
-  async function loadClaims() {
+  async function loadClaims(id: number) {
     try {
-      const res = await api.getClaims({ task_id: parseInt(taskId) });
+      const res = await api.getClaims({ task_id: id });
       if (res.code === 0) {
         setClaims(res.data.claims || []);
       }
@@ -91,12 +95,15 @@ export function TaskDetail({ taskId }: TaskDetailProps) {
   }
 
   async function handleReview(approve: boolean) {
+    const taskId = new URLSearchParams(window.location.search).get("id");
+    const id = parseInt(taskId || "");
+    if (isNaN(id)) return;
     if (!confirm(approve ? "确定通过该任务审核？" : "确定拒绝该任务？")) return;
     try {
-      const res = await api.reviewTask(parseInt(taskId), approve);
+      const res = await api.reviewTask(id, approve);
       if (res.code === 0) {
         toast.success(approve ? "已通过审核" : "已拒绝");
-        loadTask();
+        loadTask(id);
       } else {
         toast.error("操作失败: " + res.message);
       }

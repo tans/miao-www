@@ -11,7 +11,7 @@ import { TaskDetail } from "@/components/admin/TaskDetail";
     </div>
 
     <div id="task-container">
-      <TaskDetail client:load taskId={new URLSearchParams(Astro.url.search).get("id") || ""} />
+      <TaskDetail client:load />
     </div>
   </div>
 </AdminLayout>
