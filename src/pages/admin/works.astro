@@ -39,6 +39,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
       </CardContent>
     </Card>
   </div>
+
+  <!-- Image Preview Modal -->
+  <div id="image-preview-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/80" id="preview-backdrop"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <button class="absolute top-4 right-4 text-white hover:text-gray-300 text-4xl font-bold" id="preview-close">&times;</button>
+      <div id="preview-content" class="max-w-4xl max-h-[90vh] overflow-auto"></div>
+    </div>
+  </div>
 </AdminLayout>
 
 <script>
@@ -110,7 +119,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
                   <TableCell class="font-mono text-xs">${work.task_id}</TableCell>
                   <TableCell class="font-mono text-xs">${work.creator_id}</TableCell>
                   <TableCell class="max-w-64 truncate text-muted-foreground">${work.content?.substring(0, 50) || "-"}</TableCell>
-                  <TableCell>${work.images?.length > 0 ? `<span class="text-muted-foreground">${work.images.length} 张</span>` : "-"}</TableCell>
+                  <TableCell>${work.images?.length > 0 ? `<button class="text-primary hover:underline text-sm" data-action="preview-images" data-images='${JSON.stringify(work.images)}'>${work.images.length} 张</button>` : "-"}</TableCell>
                   <TableCell>
                     <Badge variant="${statusMap[work.review_result]?.variant || "secondary"}">${statusMap[work.review_result]?.label || "未知"}</Badge>
                   </TableCell>
@@ -191,10 +200,59 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
     }
   });
 
+  // Image preview modal handlers
+  const previewModal = document.getElementById("image-preview-modal");
+  const previewContent = document.getElementById("preview-content");
+  const previewBackdrop = document.getElementById("preview-backdrop");
+  const previewClose = document.getElementById("preview-close");
+
+  function openImagePreview(images: string[]) {
+    if (!previewModal || !previewContent) return;
+    previewContent.innerHTML = `
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        ${images.map((img, idx) => `
+          <div class="relative group">
+            <img src="${img}" alt="作品图片 ${idx + 1}" class="w-full h-auto rounded-lg object-contain max-h-[70vh]" />
+            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg"></div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    previewModal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeImagePreview() {
+    if (!previewModal) return;
+    previewModal.classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+
+  previewBackdrop?.addEventListener("click", closeImagePreview);
+  previewClose?.addEventListener("click", closeImagePreview);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeImagePreview();
+  });
+
   // Quick approve/reject handlers
   document.addEventListener("click", async (e) => {
     const target = e.target as HTMLElement;
     const action = target.dataset.action;
+
+    // Image preview handler
+    if (action === "preview-images") {
+      const imagesStr = target.dataset.images;
+      if (imagesStr) {
+        try {
+          const images = JSON.parse(imagesStr);
+          openImagePreview(images);
+        } catch (err) {
+          toast.error("无法解析图片数据");
+        }
+      }
+      return;
+    }
+
     const id = target.dataset.id;
     if (!action || !id) return;
 

@@ -136,11 +136,11 @@ import { WorkModal } from "@/components/WorkModal";
               </CardHeader>
               <CardContent class="flex flex-wrap gap-3">
                 ${work.status === 1 ? `
-                  <Button id="approve-btn" size="sm" class="bg-green-600 hover:bg-green-700">通过</Button>
-                  <Button id="reject-btn" size="sm" variant="destructive">拒绝</Button>
+                  <Button id="approve-btn" type="button" size="sm" class="bg-green-600 hover:bg-green-700">通过</Button>
+                  <Button id="reject-btn" type="button" size="sm" variant="destructive">拒绝</Button>
                 ` : ""}
-                <Button id="edit-btn" size="sm">编辑</Button>
-                <Button id="delete-btn" size="sm" variant="outline">删除</Button>
+                <Button id="edit-btn" type="button" size="sm">编辑</Button>
+                <Button id="delete-btn" type="button" size="sm" variant="outline">删除</Button>
               </CardContent>
             </Card>
           </div>

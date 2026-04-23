@@ -19,10 +19,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
           client:only="react"
           options={[
             { value: "", label: "全部" },
-            { value: "pending", label: "待审核" },
-            { value: "published", label: "已上架" },
-            { value: "completed", label: "进行中" },
-            { value: "cancelled", label: "已结束" },
+            { value: "1", label: "待审核" },
+            { value: "2", label: "已上架" },
+            { value: "3", label: "进行中" },
+            { value: "5", label: "已结束" },
           ]}
           id="filter-tabs"
           className="mb-0"
@@ -52,10 +52,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
   let debounceTimer: ReturnType<typeof setTimeout>;
 
   const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-    "pending": { label: "待审核", variant: "secondary" },
-    "published": { label: "已上架", variant: "default" },
-    "completed": { label: "进行中", variant: "default" },
-    "cancelled": { label: "已取消", variant: "destructive" },
+    "1": { label: "待审核", variant: "secondary" },
+    "2": { label: "已上架", variant: "default" },
+    "3": { label: "进行中", variant: "default" },
+    "4": { label: "已结束", variant: "outline" },
+    "5": { label: "已取消", variant: "destructive" },
   };
 
   async function loadTasks(page = 1, status = "") {
