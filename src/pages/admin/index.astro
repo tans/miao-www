@@ -5,10 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 ---
 
 <AdminLayout title="数据概览" activeMenu="dashboard">
-  <div class="dashboard">
-    <h1 class="page-title">数据概览</h1>
+  <div class="max-w-[1400px]">
+    <h1 class="text-2xl font-semibold mb-6">数据概览</h1>
 
-    <div class="stats-grid" id="stats-container">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="stats-container">
       <div class="loading">加载中...</div>
     </div>
   </div>
@@ -123,21 +123,3 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
   }
 </script>
 
-<style>
-  .dashboard {
-    max-width: 1400px;
-  }
-
-  .page-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-    color: var(--admin-text);
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-</style>
