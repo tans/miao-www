@@ -3,27 +3,32 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 ---
 
 <AdminLayout title="任务管理" activeMenu="tasks">
-  <div class="tasks-page">
-    <div class="page-header">
-      <h1 class="page-title">任务管理</h1>
-      <div class="filter-tabs" id="filter-tabs">
-        <a href="#" class="filter-tab active" data-status="">全部</a>
-        <a href="#" class="filter-tab" data-status="1">待审核</a>
-        <a href="#" class="filter-tab" data-status="2">已上架</a>
-        <a href="#" class="filter-tab" data-status="3">进行中</a>
-        <a href="#" class="filter-tab" data-status="4">已结束</a>
-      </div>
+  <div class="max-w-[1400px]">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-semibold">任务管理</h1>
+      <Tabs value="" id="filter-tabs" className="bg-white rounded-lg border p-1">
+        <TabsList className="bg-transparent">
+          <TabsTrigger value="" className="data-active:bg-primary data-active:text-primary-foreground">全部</TabsTrigger>
+          <TabsTrigger value="1" className="data-active:bg-primary data-active:text-primary-foreground">待审核</TabsTrigger>
+          <TabsTrigger value="2" className="data-active:bg-primary data-active:text-primary-foreground">已上架</TabsTrigger>
+          <TabsTrigger value="3" className="data-active:bg-primary data-active:text-primary-foreground">进行中</TabsTrigger>
+          <TabsTrigger value="4" className="data-active:bg-primary data-active:text-primary-foreground">已结束</TabsTrigger>
+        </TabsList>
+      </Tabs>
     </div>
 
     <Card>
       <CardContent class="p-0">
         <div id="tasks-container">
-          <div class="loading">加载中...</div>
+          <div class="text-center py-12 text-muted-foreground">加载中...</div>
         </div>
-        <div class="pagination" id="pagination"></div>
+        <div class="flex justify-center items-center gap-4 p-4 border-t" id="pagination"></div>
       </CardContent>
     </Card>
   </div>
@@ -35,7 +40,7 @@ import { Badge } from "@/components/ui/badge";
   let currentPage = 1;
   let currentStatus = "";
 
-  const statusMap: Record<number, { label: string; variant: string }> = {
+  const statusMap: Record<number, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
     1: { label: "待审核", variant: "secondary" },
     2: { label: "已上架", variant: "default" },
     3: { label: "进行中", variant: "default" },
@@ -59,77 +64,91 @@ import { Badge } from "@/components/ui/badge";
         const totalPages = Math.ceil(total / 20);
 
         if (tasks.length === 0) {
-          container.innerHTML = `<div class="empty-state">暂无数据</div>`;
+          container.innerHTML = `
+            <Alert class="m-4">
+              <AlertDescription>暂无数据</AlertDescription>
+            </Alert>
+          `;
           paginationEl.innerHTML = "";
           return;
         }
 
         container.innerHTML = `
-          <div class="overflow-x-auto">
-            <table class="tasks-table">
-              <thead class="tasks-table-header">
-                <tr>
-                  <th class="tasks-th">ID</th>
-                  <th class="tasks-th">标题</th>
-                  <th class="tasks-th">单价</th>
-                  <th class="tasks-th">预算/剩余</th>
-                  <th class="tasks-th">已认领/已提交</th>
-                  <th class="tasks-th">状态</th>
-                  <th class="tasks-th">创建时间</th>
-                  <th class="tasks-th">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tasks.map((task: any) => `
-                  <tr class="tasks-tr">
-                    <td class="tasks-td font-mono text-xs">${task.id}</td>
-                    <td class="tasks-td font-medium max-w-xs truncate">${task.title}</td>
-                    <td class="tasks-td font-mono">¥${(task.unit_price || 0).toFixed(2)}</td>
-                    <td class="tasks-td">
-                      <span class="font-mono">${task.total_budget}</span> / <span class="text-muted">${task.remaining_count}</span>
-                    </td>
-                    <td class="tasks-td">
-                      <span class="font-mono">${task.claimed_count || 0}</span> / <span class="text-muted">${task.submitted_count || 0}</span>
-                    </td>
-                    <td class="tasks-td">
-                      <span class="tasks-badge tasks-badge-${statusMap[task.status]?.variant || "secondary"}">${statusMap[task.status]?.label || "未知"}</span>
-                    </td>
-                    <td class="tasks-td text-muted text-xs">${new Date(task.created_at).toLocaleDateString("zh-CN")}</td>
-                    <td class="tasks-td">
-                      <div class="flex gap-2">
-                        <a href="/admin/task-detail?id=${task.id}" class="text-primary hover:underline text-sm">详情</a>
-                        ${task.status === 1 ? `<button class="text-green-600 hover:underline text-sm" data-action="review" data-id="${task.id}">审核</button>` : ""}
-                      </div>
-                    </td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>标题</TableHead>
+                <TableHead>单价</TableHead>
+                <TableHead>预算/剩余</TableHead>
+                <TableHead>已认领/已提交</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>创建时间</TableHead>
+                <TableHead>操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              ${tasks.map((task: any) => `
+                <TableRow>
+                  <TableCell class="font-mono text-xs">${task.id}</TableCell>
+                  <TableCell class="font-medium max-w-64 truncate">${task.title}</TableCell>
+                  <TableCell class="font-mono">¥${(task.unit_price || 0).toFixed(2)}</TableCell>
+                  <TableCell>
+                    <span class="font-mono">${task.total_budget}</span> / <span class="text-muted-foreground">${task.remaining_count}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span class="font-mono">${task.claimed_count || 0}</span> / <span class="text-muted-foreground">${task.submitted_count || 0}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="${statusMap[task.status]?.variant || "secondary"}">${statusMap[task.status]?.label || "未知"}</Badge>
+                  </TableCell>
+                  <TableCell class="text-muted-foreground text-xs">${new Date(task.created_at).toLocaleDateString("zh-CN")}</TableCell>
+                  <TableCell>
+                    <div class="flex gap-2">
+                      <a href="/admin/task-detail?id=${task.id}" class="text-primary hover:underline text-sm">详情</a>
+                      ${task.status === 1 ? `<button class="text-green-600 hover:underline text-sm" data-action="review" data-id="${task.id}">审核</button>` : ""}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              `).join("")}
+            </TableBody>
+          </Table>
         `;
 
-        const statusParam = status ? `&status=${status}` : "";
-        paginationEl.innerHTML = totalPages > 1 ? `
-          <a href="#" class="page-btn ${page <= 1 ? 'disabled' : ''}" data-page="${page - 1}${statusParam}">上一页</a>
-          <span class="page-info">第 ${page} / ${totalPages} 页，共 ${total} 条</span>
-          <a href="#" class="page-btn ${page >= totalPages ? 'disabled' : ''}" data-page="${page + 1}${statusParam}">下一页</a>
-        ` : "";
+        if (totalPages > 1) {
+          const statusParam = status ? `&status=${status}` : "";
+          paginationEl.innerHTML = `
+            <Button variant="outline" size="sm" ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}${statusParam}">上一页</Button>
+            <span class="text-sm text-muted-foreground">第 ${page} / ${totalPages} 页，共 ${total} 条</span>
+            <Button variant="outline" size="sm" ${page >= totalPages ? 'disabled' : ''} data-page="${page + 1}${statusParam}">下一页</Button>
+          `;
+        } else {
+          paginationEl.innerHTML = "";
+        }
       } else {
-        container.innerHTML = `<div class="error-message">${res.message}</div>`;
+        container.innerHTML = `
+          <Alert variant="destructive" class="m-4">
+            <AlertDescription>${res.message}</AlertDescription>
+          </Alert>
+        `;
+        paginationEl.innerHTML = "";
       }
     } catch (e) {
-      container.innerHTML = `<div class="error-message">加载失败</div>`;
+      container.innerHTML = `
+        <Alert variant="destructive" class="m-4">
+          <AlertDescription>加载失败</AlertDescription>
+        </Alert>
+      `;
+      paginationEl.innerHTML = "";
     }
   }
 
   // Filter tabs handler
   document.getElementById("filter-tabs")?.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
-    if (target.classList.contains("filter-tab")) {
-      e.preventDefault();
-      document.querySelectorAll(".filter-tab").forEach(el => el.classList.remove("active"));
-      target.classList.add("active");
-      currentStatus = target.dataset.status || "";
+    const trigger = target.closest("[data-slot=tabs-trigger]") as HTMLElement;
+    if (trigger) {
+      currentStatus = trigger.getAttribute("value") || "";
       currentPage = 1;
       loadTasks(1, currentStatus);
     }
@@ -138,9 +157,9 @@ import { Badge } from "@/components/ui/badge";
   // Pagination handler
   document.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
-    if (target.classList.contains("page-btn") && !target.classList.contains("disabled")) {
-      e.preventDefault();
-      const pageBtn = target;
+    const btn = target.closest("button[data-page]");
+    if (btn && !btn.hasAttribute("disabled")) {
+      const pageBtn = btn as HTMLElement;
       const pageMatch = pageBtn.dataset.page?.match(/^(\d+)(.*)$/);
       if (pageMatch) {
         currentPage = parseInt(pageMatch[1]);
@@ -159,177 +178,3 @@ import { Badge } from "@/components/ui/badge";
     loadTasks();
   }
 </script>
-
-<style>
-  .tasks-page {
-    max-width: 1400px;
-  }
-
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
-
-  .page-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-  }
-
-  .filter-tabs {
-    display: flex;
-    gap: 0.25rem;
-    background: white;
-    padding: 0.25rem;
-    border-radius: 0.5rem;
-    border: 1px solid var(--admin-border);
-  }
-
-  .filter-tab {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    color: var(--admin-text-muted);
-    text-decoration: none;
-    border-radius: 0.375rem;
-    transition: all 0.2s;
-  }
-
-  .filter-tab:hover {
-    color: var(--admin-text);
-    background: var(--admin-bg);
-  }
-
-  .filter-tab.active {
-    background: var(--admin-primary);
-    color: white;
-  }
-
-  .loading, .empty-state {
-    text-align: center;
-    padding: 3rem;
-    color: var(--admin-text-muted);
-  }
-
-  .error-message {
-    padding: 1rem;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #dc2626;
-    border-radius: 0.5rem;
-    margin: 1rem;
-  }
-
-  .pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    border-top: 1px solid var(--admin-border);
-  }
-
-  .page-btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    color: var(--admin-text);
-    text-decoration: none;
-    border: 1px solid var(--admin-border);
-    border-radius: 0.375rem;
-  }
-
-  .page-btn:hover:not(.disabled) {
-    border-color: var(--admin-primary);
-    color: var(--admin-primary);
-  }
-
-  .page-btn.disabled {
-    opacity: 0.5;
-    pointer-events: none;
-  }
-
-  .page-info {
-    font-size: 0.875rem;
-    color: var(--admin-text-muted);
-  }
-
-  /* Tasks table styles */
-  .tasks-table {
-    width: 100%;
-    caption-side: bottom;
-    font-size: 0.875rem;
-  }
-
-  .tasks-table-header {
-    border-bottom: 1px solid var(--admin-border);
-  }
-
-  .tasks-th {
-    height: 2.5rem;
-    padding: 0.5rem;
-    text-align: left;
-    vertical-align: middle;
-    font-weight: 500;
-    white-space: nowrap;
-    color: var(--admin-text);
-  }
-
-  .tasks-tr {
-    border-bottom: 1px solid var(--admin-border);
-    transition: background-color 0.2s;
-  }
-
-  .tasks-tr:hover {
-    background-color: var(--admin-bg);
-  }
-
-  .tasks-td {
-    padding: 0.5rem;
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-
-  .tasks-badge {
-    display: inline-flex;
-    height: 1.25rem;
-    width: fit-content;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
-    overflow: hidden;
-    border-radius: 9999px;
-    border: 1px solid transparent;
-    padding: 0 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-  }
-
-  .tasks-badge-default {
-    background: var(--admin-primary);
-    color: white;
-  }
-
-  .tasks-badge-secondary {
-    background: var(--admin-secondary);
-    color: var(--admin-text);
-  }
-
-  .tasks-badge-destructive {
-    background: oklch(0.577 0.245 27.325 / 0.1);
-    color: oklch(0.577 0.245 27.325);
-  }
-
-  .text-muted {
-    color: var(--admin-text-muted);
-  }
-
-  .truncate {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .max-w-xs {
-    max-width: 20rem;
-  }
-</style>
