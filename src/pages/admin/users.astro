@@ -221,7 +221,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
       const id = target.dataset.id;
       const current = parseInt(target.dataset.current || "1");
       if (!id) return;
-      const newStatus = current === 1 ? 2 : 1;
+      const newStatus = current === 1 ? 0 : 1;
       const actionText = newStatus === 1 ? "启用" : "禁用";
       if (!confirm(`确定${actionText}该用户？`)) return;
       try {

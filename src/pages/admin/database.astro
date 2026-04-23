@@ -57,6 +57,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 <script>
   import { api } from "@/lib/api";
+  import { toast } from "sonner";
 
   async function loadTables() {
     const container = document.getElementById("tables-container");
@@ -180,14 +181,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
     const sql = sqlInput.value.trim();
     if (!sql) {
-      alert("请输入 SQL 语句");
+      toast.error("请输入 SQL 语句");
       return;
     }
 
     // Basic validation for read-only queries
     const upperSql = sql.toUpperCase();
     if (!upperSql.startsWith("SELECT") && !upperSql.startsWith("SHOW") && !upperSql.startsWith("DESCRIBE")) {
-      alert("仅允许 SELECT/SHOW/DESCRIBE 查询");
+      toast.error("仅允许 SELECT/SHOW/DESCRIBE 查询");
       return;
     }
 

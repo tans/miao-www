@@ -45,6 +45,7 @@ import { InspirationModal } from "@/components/InspirationModal";
 
 <script>
   import { api } from "@/lib/api";
+  import { toast } from "sonner";
 
   let currentPage = 1;
   let currentStatus = "";
@@ -180,12 +181,13 @@ import { InspirationModal } from "@/components/InspirationModal";
       try {
         const res = await api.deleteInspiration(parseInt(id));
         if (res.code === 0) {
+          toast.success("删除成功");
           loadInspirations(currentPage, currentStatus);
         } else {
-          alert(res.message || "删除失败");
+          toast.error(res.message || "删除失败");
         }
       } catch (e) {
-        alert("删除失败");
+        toast.error("删除失败");
       }
     }
   });
