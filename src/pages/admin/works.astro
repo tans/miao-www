@@ -110,7 +110,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
                   <TableCell class="font-mono text-xs">${work.task_id}</TableCell>
                   <TableCell class="font-mono text-xs">${work.creator_id}</TableCell>
                   <TableCell class="max-w-64 truncate text-muted-foreground">${work.content?.substring(0, 50) || "-"}</TableCell>
-                  <TableCell>${work.materials?.length > 0 ? `<span class="text-muted-foreground">${work.materials.length} 张</span>` : "-"}</TableCell>
+                  <TableCell>${work.images?.length > 0 ? `<span class="text-muted-foreground">${work.images.length} 张</span>` : "-"}</TableCell>
                   <TableCell>
                     <Badge variant="${statusMap[work.review_result]?.variant || "secondary"}">${statusMap[work.review_result]?.label || "未知"}</Badge>
                   </TableCell>

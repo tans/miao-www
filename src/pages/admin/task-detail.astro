@@ -165,7 +165,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
         document.getElementById("approve-btn")?.addEventListener("click", async () => {
           if (!confirm("确定通过该任务审核？")) return;
           try {
-            const res = await api.reviewTask(parseInt(taskId), 2);
+            const res = await api.reviewTask(parseInt(taskId), true);
             if (res.code === 0) {
               toast.success("已通过审核");
               loadTask();
@@ -180,7 +180,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
         document.getElementById("reject-btn")?.addEventListener("click", async () => {
           if (!confirm("确定拒绝该任务？")) return;
           try {
-            const res = await api.reviewTask(parseInt(taskId), 5);
+            const res = await api.reviewTask(parseInt(taskId), false);
             if (res.code === 0) {
               toast.success("已拒绝");
               loadTask();

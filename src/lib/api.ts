@@ -217,7 +217,7 @@ class ApiClient {
   }
 
   async reviewTask(id: number, approved: boolean, comment?: string) {
-    return this.request<void>(`/api/v1/admin/task/${id}/review`, {
+    return this.request<void>(`/api/v1/admin/tasks/${id}/review`, {
       method: 'PUT',
       body: JSON.stringify({ approved, comment: comment || "" }),
     })
@@ -262,10 +262,10 @@ class ApiClient {
     return this.request<{ appeal: Appeal }>(`/api/v1/admin/appeals/${id}`)
   }
 
-  async handleAppeal(id: number, accepted: boolean, result: string) {
+  async handleAppeal(id: number, accepted: boolean, action: string) {
     return this.request<void>(`/api/v1/admin/appeals/${id}/handle`, {
       method: 'PUT',
-      body: JSON.stringify({ accepted, result }),
+      body: JSON.stringify({ result: accepted ? 1 : 0, action }),
     })
   }
 
@@ -344,6 +344,61 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ sql }),
     })
+  }
+
+  // Categories
+  async getCategories() {
+    return this.request<{ categories: unknown[] }>('/api/v1/admin/categories')
+  }
+
+  async createCategory(data: { name: string; icon?: string; sort_order?: number }) {
+    return this.request<{ category: unknown }>('/api/v1/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateCategory(id: number, data: { name?: string; icon?: string; sort_order?: number }) {
+    return this.request<void>(`/api/v1/admin/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteCategory(id: number) {
+    return this.request<void>(`/api/v1/admin/categories/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Notifications
+  async getNotifications(params?: { page?: number; page_size?: number }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
+    return this.request<{ notifications: unknown[]; total: number }>(`/api/v1/admin/notifications?${searchParams}`)
+  }
+
+  async sendNotification(data: { title: string; content: string; target_type: 'all' | 'creators' | 'businesses' | 'user'; user_id?: number }) {
+    return this.request<void>('/api/v1/admin/notifications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Claims
+  async getClaims(params?: { page?: number; page_size?: number; status?: number; task_id?: number; creator_id?: number }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
+    if (params?.status !== undefined) searchParams.set('status', String(params.status))
+    if (params?.task_id) searchParams.set('task_id', String(params.task_id))
+    if (params?.creator_id) searchParams.set('creator_id', String(params.creator_id))
+    return this.request<{ claims: unknown[]; total: number }>(`/api/v1/admin/claims?${searchParams}`)
+  }
+
+  async getClaimDetail(id: number) {
+    return this.request<{ claim: unknown }>(`/api/v1/admin/claims/${id}`)
   }
 }
 
