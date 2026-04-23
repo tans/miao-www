@@ -153,8 +153,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
           if (!confirm("确定提交处理结果？")) return;
 
+          // Map frontend status (2=通过, 3=拒绝) to backend accepted boolean
+          const accepted = status === 2;
+
           try {
-            const res = await api.handleAppeal(parseInt(appealId), status, reply);
+            const res = await api.handleAppeal(parseInt(appealId), accepted, reply);
             if (res.code === 0) {
               toast.success("处理成功");
               loadAppeal();

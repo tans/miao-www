@@ -161,12 +161,13 @@ class ApiClient {
   }
 
   // Users
-  async getUsers(params?: { page?: number; page_size?: number; status?: number; role?: number }) {
+  async getUsers(params?: { page?: number; page_size?: number; status?: number | string; role?: string; keyword?: string }) {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', String(params.page))
     if (params?.page_size) searchParams.set('page_size', String(params.page_size))
     if (params?.status !== undefined) searchParams.set('status', String(params.status))
-    if (params?.role !== undefined) searchParams.set('role', String(params.role))
+    if (params?.role) searchParams.set('role', params.role)
+    if (params?.keyword) searchParams.set('search', params.keyword)
     return this.request<{ users: User[]; total: number }>(`/api/v1/admin/users?${searchParams}`)
   }
 
@@ -215,10 +216,10 @@ class ApiClient {
     })
   }
 
-  async reviewTask(id: number, status: number) {
+  async reviewTask(id: number, approved: boolean, comment?: string) {
     return this.request<void>(`/api/v1/admin/task/${id}/review`, {
       method: 'PUT',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ approved, comment: comment || "" }),
     })
   }
 
@@ -261,10 +262,10 @@ class ApiClient {
     return this.request<{ appeal: Appeal }>(`/api/v1/admin/appeals/${id}`)
   }
 
-  async handleAppeal(id: number, status: number, reply: string) {
+  async handleAppeal(id: number, accepted: boolean, result: string) {
     return this.request<void>(`/api/v1/admin/appeals/${id}/handle`, {
       method: 'PUT',
-      body: JSON.stringify({ status, reply }),
+      body: JSON.stringify({ accepted, result }),
     })
   }
 

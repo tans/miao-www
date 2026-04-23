@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
         client:only="react"
         options={[
           { value: "", label: "全部" },
-          { value: "1", label: "待处理" },
+          { value: "0", label: "待处理" },
           { value: "2", label: "已处理" },
         ]}
         id="filter-tabs"
@@ -43,9 +43,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
   let currentStatus = "";
 
   const statusMap: Record<number, { label: string; variant: "default" | "secondary" | "outline" }> = {
-    1: { label: "待处理", variant: "secondary" },
+    0: { label: "待处理", variant: "secondary" },
     2: { label: "已处理", variant: "default" },
-    3: { label: "已关闭", variant: "outline" },
   };
 
   const typeMap: Record<number, string> = {
@@ -110,7 +109,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
                   <TableCell>
                     <div class="flex gap-2">
                       <a href="/admin/appeal-detail?id=${appeal.id}" class="text-primary hover:underline text-sm">详情</a>
-                      ${appeal.status === 1 ? `<button class="text-green-600 hover:underline text-sm" data-action="handle" data-id="${appeal.id}">处理</button>` : ""}
+                      ${appeal.status === 0 ? `<button class="text-green-600 hover:underline text-sm" data-action="handle" data-id="${appeal.id}">处理</button>` : ""}
                     </div>
                   </TableCell>
                 </TableRow>

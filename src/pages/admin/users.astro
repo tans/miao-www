@@ -16,15 +16,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
         <Input type="search" placeholder="搜索用户名/邮箱/手机..." class="w-64" id="search-input" />
         <select id="role-filter" class="flex h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm">
           <option value="">全部角色</option>
-          <option value="1">创作者</option>
-          <option value="2">商家</option>
-          <option value="3">管理员</option>
+          <option value="creator">创作者</option>
+          <option value="business">商家</option>
+          <option value="admin">管理员</option>
         </select>
         <select id="status-filter" class="flex h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm">
           <option value="">全部状态</option>
-          <option value="1">正常</option>
-          <option value="2">禁用</option>
-          <option value="3">冻结</option>
+          <option value="active">正常</option>
+          <option value="disabled">禁用</option>
         </select>
         <Button variant="outline" size="sm" id="reset-btn">重置</Button>
       </div>
@@ -52,15 +51,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
   let debounceTimer: ReturnType<typeof setTimeout>;
 
   const statusMap: Record<number, { label: string; variant: "default" | "destructive" | "secondary" }> = {
+    0: { label: "禁用", variant: "destructive" },
     1: { label: "正常", variant: "default" },
-    2: { label: "禁用", variant: "destructive" },
-    3: { label: "冻结", variant: "secondary" },
+    2: { label: "冻结", variant: "secondary" },
   };
 
-  const roleMap: Record<number, string> = {
-    1: "创作者",
-    2: "商家",
-    3: "管理员",
+  const roleMap: Record<string, string> = {
+    "creator": "创作者",
+    "business": "商家",
+    "admin": "管理员",
   };
 
   async function loadUsers(page = 1) {
@@ -73,8 +72,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
     try {
       const params: Record<string, any> = { page, page_size: 20 };
       if (searchKeyword) params.keyword = searchKeyword;
-      if (roleFilter) params.role = parseInt(roleFilter);
-      if (statusFilter) params.status = parseInt(statusFilter);
+      if (roleFilter) params.role = roleFilter;
+      if (statusFilter) params.status = statusFilter === "active" ? 1 : (statusFilter === "disabled" ? 0 : statusFilter);
 
       const res = await api.getUsers(params);
       if (res.code === 0) {
