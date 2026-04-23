@@ -6,7 +6,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FilterTabs } from "@/components/FilterTabs";
-import { InspirationModal } from "@/components/InspirationModal";
 ---
 
 <AdminLayout title="灵感管理" activeMenu="inspirations">
@@ -38,8 +37,6 @@ import { InspirationModal } from "@/components/InspirationModal";
         <div class="flex justify-center items-center gap-4 p-4 border-t" id="pagination"></div>
       </CardContent>
     </Card>
-
-    <InspirationModal client:only="react" id="modal" />
   </div>
 </AdminLayout>
 
@@ -212,4 +209,10 @@ import { InspirationModal } from "@/components/InspirationModal";
   } else {
     loadInspirations();
   }
+</script>
+
+<!-- InspirationModal outside the React component -->
+<script>
+  import { InspirationModal } from "@/components/InspirationModal";
+  // The modal is rendered client-side via the event system
 </script>
