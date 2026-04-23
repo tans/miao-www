@@ -53,10 +53,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
             <svg class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </div>
           </div>
-          <div class="flex-1 min-w-48 hidden" id="sim-user-password-section">
-            <Label class="mb-1 block">用户密码:</Label>
-            <Input type="password" id="sim-user-password" placeholder="输入用户密码" />
-          </div>
           <div class="hidden" id="sim-user-btn-section">
             <Label class="mb-1 block">&nbsp;</Label>
             <Button onclick="getSimUserToken()" class="w-full">
@@ -138,7 +134,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
     const tokenDisplay = document.getElementById('sim-user-token-display')!;
 
     if (select.value) {
-      passwordSection.classList.remove('hidden');
+      passwordSection.classList.add('hidden');
       btnSection.classList.remove('hidden');
       userInfo.classList.add('hidden');
       tokenDisplay.classList.add('hidden');
@@ -156,35 +152,28 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
   async function getSimUserToken() {
     const select = document.getElementById('sim-user-select') as HTMLSelectElement;
-    const password = (document.getElementById('sim-user-password') as HTMLInputElement).value;
     const userId = select.value;
 
     if (!userId) {
       alert('请选择用户');
       return;
     }
-    if (!password) {
-      alert('请输入用户密码');
-      return;
-    }
 
-    const user = allUsers.find((u: any) => u.id == userId);
-    if (!user) {
-      alert('用户不存在');
+    const adminToken = api.getToken();
+    if (!adminToken) {
+      alert('管理员未登录');
       return;
     }
 
     try {
-      const res = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: user.username, password: password })
+      const res = await fetch(`/api/v1/admin/users/${userId}/token`, {
+        headers: { 'Authorization': 'Bearer ' + adminToken }
       });
       const data = await res.json();
 
       if (data.code === 0 && data.data && data.data.token) {
         simUserToken = data.data.token;
-        simUserInfo = { username: user.username, role: user.role, id: user.id };
+        simUserInfo = data.data.user;
 
         document.getElementById('sim-user-password-section')!.classList.add('hidden');
         document.getElementById('sim-user-btn-section')!.classList.add('hidden');
@@ -192,10 +181,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
         document.getElementById('sim-user-token-display')!.classList.remove('hidden');
 
         const badge = document.getElementById('sim-user-badge')!;
-        badge.textContent = `${user.username} (ID:${user.id})`;
+        badge.textContent = `${simUserInfo.username} (ID:${simUserInfo.id})`;
 
         const role = document.getElementById('sim-user-role')!;
-        role.textContent = '角色: ' + (user.role === 1 ? '创作者' : user.role === 2 ? '商家' : '未知');
+        role.textContent = '角色: ' + (simUserInfo.is_admin ? '管理员' : '普通用户');
 
         const preview = document.getElementById('sim-user-token-preview')!;
         preview.textContent = simUserToken;
@@ -204,9 +193,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
           input.value = simUserToken || '';
         });
 
-        alert('已获取 ' + user.username + ' 的Token');
+        alert('已获取 ' + simUserInfo.username + ' 的Token');
       } else {
-        alert(data.message || '登录失败');
+        alert(data.message || '获取Token失败');
       }
     } catch (e: any) {
       alert('获取Token失败: ' + e.message);
