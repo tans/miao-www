@@ -11,11 +11,11 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
         <option value="">-- 手动输入Token --</option>
       </select>
       <span id="sim-user-btn-section" class="hidden">
-        <button onclick="getSimUserToken()" class="text-xs text-blue-600 hover:underline">获取Token</button>
+        <button id="btn-get-token" class="text-xs text-blue-600 hover:underline">获取Token</button>
       </span>
       <span id="sim-user-info" class="hidden text-xs">
         <span id="sim-user-badge" class="text-green-600"></span>
-        <button onclick="clearSimUser()" class="ml-2 text-muted-foreground hover:text-red-600">×</button>
+        <button id="btn-clear-user" class="ml-2 text-muted-foreground hover:text-red-600">×</button>
       </span>
       <span id="sim-user-token-display" class="hidden ml-2">
         <code id="sim-user-token-preview" class="text-xs text-muted-foreground"></code>
@@ -25,8 +25,8 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
         <select id="filter-tag" class="h-7 px-2 rounded border border-input bg-transparent text-xs">
           <option value="">全部</option>
         </select>
-        <button onclick="expandAll()" class="text-xs text-muted-foreground hover:text-foreground">展开</button>
-        <button onclick="collapseAll()" class="text-xs text-muted-foreground hover:text-foreground">收起</button>
+        <button id="btn-expand-all" class="text-xs text-muted-foreground hover:text-foreground">展开</button>
+        <button id="btn-collapse-all" class="text-xs text-muted-foreground hover:text-foreground">收起</button>
       </span>
     </div>
 
@@ -44,6 +44,10 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
   let simUserToken: string | null = null;
   let simUserInfo: any = null;
   let allUsers: any[] = [];
+
+  // 挂载到 window 以便 HTML onclick 调用
+  (window as any).getSimUserToken = getSimUserToken;
+  (window as any).clearSimUser = clearSimUser;
 
   function getAdminToken(): string | null {
     return localStorage.getItem('admin_token');
@@ -200,6 +204,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
 
     container.innerHTML = html;
 
+    // 事件委托处理 endpoint 点击展开
     container.querySelectorAll('.endpoint-header').forEach((header) => {
       header.addEventListener('click', () => {
         const details = header.nextElementSibling as HTMLElement;
@@ -251,8 +256,8 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
       <div class="p-3 hidden">
         <div class="flex items-center gap-2 mb-2">
           <input type="text" class="flex-1 h-7 px-2 rounded border border-input bg-transparent text-xs" data-endpoint-token id="token-${epId}" value="${defaultToken}" placeholder="Token">
-          <button onclick="sendRequest('${ep.method}', '${ep.path}', '${epId}')" class="px-3 py-1 bg-primary text-primary-foreground text-xs rounded hover:bg-primary/90">发送</button>
-          <button onclick="clearResponse('${epId}')" class="px-3 py-1 border border-input text-xs rounded hover:bg-muted">清空</button>
+          <button class="btn-send px-3 py-1 bg-primary text-primary-foreground text-xs rounded hover:bg-primary/90" data-method="${ep.method}" data-path="${ep.path}" data-epid="${epId}">发送</button>
+          <button class="btn-clear-resp px-3 py-1 border border-input text-xs rounded hover:bg-muted" data-epid="${epId}">清空</button>
         </div>
         ${params.length > 0 ? `<div class="mb-2">${paramsHtml}</div>` : ''}
         ${requestBodyHtml}
@@ -278,7 +283,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
   async function sendRequest(method: string, path: string, epId: string) {
     let token = (document.getElementById('token-' + epId) as HTMLInputElement).value;
     const responseEl = document.getElementById('response-' + epId)!;
-    const btn = responseEl.closest('.endpoint-card')!.querySelector('button') as HTMLButtonElement;
+    const btn = responseEl.closest('.endpoint-card')!.querySelector('.btn-send') as HTMLButtonElement;
 
     if (!token && simUserToken) token = simUserToken;
     if (!token) { responseEl.innerHTML = '<span class="text-red-500">需要Token</span>'; return; }
@@ -349,6 +354,26 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
       (section as HTMLElement).style.display = visibleCards.length > 0 ? '' : 'none';
     });
   }
+
+  // 全局事件委托
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+
+    if (target.id === 'btn-get-token') { getSimUserToken(); return; }
+    if (target.id === 'btn-clear-user') { clearSimUser(); return; }
+    if (target.id === 'btn-expand-all') { expandAll(); return; }
+    if (target.id === 'btn-collapse-all') { collapseAll(); return; }
+
+    if (target.classList.contains('btn-send')) {
+      const btn = target as HTMLButtonElement;
+      sendRequest(btn.dataset.method!, btn.dataset.path!, btn.dataset.epid!);
+      return;
+    }
+    if (target.classList.contains('btn-clear-resp')) {
+      clearResponse(target.getAttribute('data-epid')!);
+      return;
+    }
+  });
 
   document.getElementById('search-api')?.addEventListener('input', filterAPI);
   document.getElementById('filter-tag')?.addEventListener('change', filterAPI);

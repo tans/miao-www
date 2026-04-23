@@ -227,7 +227,8 @@ const bottomMenuItems = [
                         <line x1="12" y1="19" x2="20" y2="19"></line>
                       </svg>
                     )}
-                    <span>{item.label}</span>
+                    <span data-menu={item.id}>{item.label}</span>
+                    <span class="nav-count text-xs ml-1 opacity-60"></span>
                     {item.id === "tasks" && (
                       <span class="badge bg-warning text-gray-900" id="pending-task-badge"></span>
                     )}
@@ -311,15 +312,32 @@ const bottomMenuItems = [
           if (usernameEl) usernameEl.textContent = username;
         }
 
-        // Load pending counts for badges
-        loadPendingCounts();
+        // Load counts for sidebar badges
+        loadCounts();
       });
 
-      async function loadPendingCounts() {
+      async function loadCounts() {
         const token = api.getToken();
         if (!token) return;
 
-        // Pending tasks
+        try {
+          const res = await api.getStats();
+          if (res.code === 0 && res.data) {
+            const counts = [
+              { menu: "users", value: res.data.total_users },
+              { menu: "tasks", value: res.data.total_tasks },
+              { menu: "works", value: res.data.total_works },
+            ];
+            counts.forEach(({ menu, value }) => {
+              const el = document.querySelector(`[data-menu="${menu}"] .nav-count`);
+              if (el) el.textContent = String(value);
+            });
+          }
+        } catch (e) {
+          console.error("Load counts failed:", e);
+        }
+
+        // Load pending counts for badges
         try {
           const res = await api.getTasks({ status: 1 });
           if (res.code === 0 && res.data?.tasks?.length > 0) {
@@ -333,7 +351,6 @@ const bottomMenuItems = [
           console.error("Load pending tasks failed:", e);
         }
 
-        // Pending appeals
         try {
           const res = await api.getAppeals({ status: 1 });
           if (res.code === 0 && res.data?.appeals?.length > 0) {
