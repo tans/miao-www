@@ -1,24 +1,22 @@
 "use client"
 
-import { useState } from "react"
-import { Tabs as TabsPrimitive } from "@base-ui/react/tabs"
+import { useState, useEffect } from "react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 interface FilterTabsProps {
   options: { value: string; label: string }[]
   defaultValue?: string
-  onChange?: (value: string) => void
   className?: string
   id?: string
   eventName?: string
 }
 
-export function FilterTabs({ options, defaultValue = "", onChange, className, id, eventName }: FilterTabsProps) {
+export function FilterTabs({ options, defaultValue = "", className, id, eventName }: FilterTabsProps) {
   const [value, setValue] = useState(defaultValue)
 
   const handleChange = (newValue: string) => {
     setValue(newValue)
-    onChange?.(newValue)
     if (eventName) {
       window.dispatchEvent(new CustomEvent(eventName, { detail: { value: newValue } }))
     }
@@ -26,19 +24,19 @@ export function FilterTabs({ options, defaultValue = "", onChange, className, id
 
   return (
     <div id={id}>
-      <TabsPrimitive value={value} onValueChange={handleChange} className={cn("bg-white rounded-lg border p-1", className)}>
-        <TabsPrimitive.List className="bg-transparent flex gap-1">
+      <Tabs value={value} onValueChange={handleChange} className={cn("bg-white rounded-lg border p-1", className)}>
+        <TabsList variant="default" className="bg-transparent flex gap-1">
           {options.map((option) => (
-            <TabsPrimitive.Tab
+            <TabsTrigger
               key={option.value}
               value={option.value}
               className="inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all hover:text-foreground data-active:bg-primary data-active:text-primary-foreground data-active:shadow-sm disabled:pointer-events-none disabled:opacity-50"
             >
               {option.label}
-            </TabsPrimitive.Tab>
+            </TabsTrigger>
           ))}
-        </TabsPrimitive.List>
-      </TabsPrimitive>
+        </TabsList>
+      </Tabs>
     </div>
   )
 }

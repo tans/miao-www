@@ -214,7 +214,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
     if (!container || !taskId) return;
 
     try {
-      const res = await api.request<{ claims: any[] }>(`/api/v1/admin/claims?task_id=${taskId}`);
+      const res = await api.getClaims({ task_id: parseInt(taskId) });
       if (res.code === 0) {
         const claims = res.data.claims || [];
         if (claims.length === 0) {

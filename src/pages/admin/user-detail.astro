@@ -37,9 +37,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
   }
 
   const statusMap: Record<number, { label: string; variant: "default" | "destructive" | "secondary" }> = {
+    0: { label: "禁用", variant: "destructive" },
     1: { label: "正常", variant: "default" },
-    2: { label: "禁用", variant: "destructive" },
-    3: { label: "冻结", variant: "secondary" },
+    2: { label: "冻结", variant: "secondary" },
   };
 
   const roleMap: Record<number, string> = {
@@ -128,8 +128,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
                   <div class="relative">
                     <select id="status-select" class="h-8 pl-3 pr-8 rounded-md border border-input bg-transparent text-sm appearance-none cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 w-32">
                       <option value="1" ${user.status === 1 ? "selected" : ""}>正常</option>
-                      <option value="2" ${user.status === 2 ? "selected" : ""}>禁用</option>
-                      <option value="3" ${user.status === 3 ? "selected" : ""}>冻结</option>
+                      <option value="0" ${user.status === 0 ? "selected" : ""}>禁用</option>
+                      <option value="2" ${user.status === 2 ? "selected" : ""}>冻结</option>
                     </select>
                     <svg class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                   </div>

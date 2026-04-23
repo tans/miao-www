@@ -130,7 +130,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
     if (!resultsContainer) return;
 
     try {
-      const res = await api.request<{ schema: any }>(`/api/v1/admin/tables/${tableName}/schema`);
+      const res = await api.getTableSchema(tableName);
       if (res.code === 0) {
         const schema = res.data.schema;
         resultsContainer.innerHTML = `
