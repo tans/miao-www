@@ -8,11 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { ChevronDownIcon } from "lucide-react";
 
 interface Column {
   name: string;
@@ -34,7 +31,6 @@ export function Database() {
   const [loading, setLoading] = useState(true);
   const [schemaTable, setSchemaTable] = useState("");
   const [sqlInput, setSqlInput] = useState("");
-  const [tableSearchOpen, setTableSearchOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState("");
   const [selectedTable, setSelectedTable] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -187,33 +183,30 @@ export function Database() {
           {loading ? (
             <div className="text-center py-4 text-muted-foreground">加载中...</div>
           ) : (
-            <Popover open={tableSearchOpen} onOpenChange={setTableSearchOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={tableSearchOpen} className="w-[300px] justify-between">
-                  {selectedTable || "选择表..."}
-                  <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0">
-                <Command>
-                  <CommandInput placeholder="搜索表名..." value={tableSearch} onValueChange={setTableSearch} />
-                  <CommandList>
-                    <CommandEmpty>未找到表</CommandEmpty>
-                    <CommandGroup>
-                      {tables.filter(t => t.toLowerCase().includes(tableSearch.toLowerCase())).map(table => (
-                        <CommandItem key={table} value={table} onSelect={() => {
-                          setTableSearch(table);
-                          loadTableData(table);
-                          setTableSearchOpen(false);
-                        }}>
-                          {table}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <div className="flex gap-2">
+              <Input
+                placeholder="搜索表名..."
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
+                className="w-[300px]"
+              />
+              <select
+                className="h-9 w-[300px] rounded-lg border border-input bg-transparent px-3 py-1 text-sm"
+                value={selectedTable}
+                onChange={(e) => {
+                  const table = e.target.value;
+                  if (table) {
+                    setSelectedTable(table);
+                    loadTableData(table);
+                  }
+                }}
+              >
+                <option value="">选择表...</option>
+                {tables.filter(t => t.toLowerCase().includes(tableSearch.toLowerCase())).map(table => (
+                  <option key={table} value={table}>{table}</option>
+                ))}
+              </select>
+            </div>
           )}
         </CardContent>
       </Card>

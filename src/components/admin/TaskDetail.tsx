@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,8 @@ export function TaskDetail() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const initialized = useRef(false);
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
@@ -54,14 +56,18 @@ export function TaskDetail() {
       return;
     }
 
-    const taskId = new URLSearchParams(window.location.search).get("id");
-    const id = parseInt(taskId || "");
+    if (initialized.current) return;
+    initialized.current = true;
+
+    const params = new URLSearchParams(window.location.search);
+    const id = parseInt(params.get("id") || "");
     if (isNaN(id)) {
       setError("无效的任务ID");
       setLoading(false);
       return;
     }
 
+    setTaskId(params.get("id"));
     loadTask(id);
   }, []);
 
