@@ -3,16 +3,8 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { WorkModal } from "@/components/WorkModal";
 ---
 
 <AdminLayout title="作品详情" activeMenu="works">
@@ -26,24 +18,7 @@ import {
       <div class="text-center py-12 text-muted-foreground">加载中...</div>
     </div>
 
-    <Dialog open={false} id="edit-modal">
-      <DialogContent class="max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle id="edit-modal-title">编辑作品</DialogTitle>
-        </DialogHeader>
-        <form id="edit-work-form" class="space-y-4">
-          <input type="hidden" id="edit-work-id" name="id" />
-          <div class="space-y-2">
-            <Label for="edit-work-content">作品内容</Label>
-            <Textarea id="edit-work-content" name="content" rows="5" placeholder="请输入内容"></Textarea>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" id="cancel-btn">取消</Button>
-            <Button type="submit">保存</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <WorkModal client:only="react" />
   </div>
 </AdminLayout>
 
@@ -217,39 +192,10 @@ import {
         });
 
         // Edit modal handling
-        const modal = document.getElementById("edit-modal") as any;
-        const editForm = document.getElementById("edit-work-form") as HTMLFormElement;
-
-        function openEditModal(work: any) {
-          (document.getElementById("edit-work-id") as HTMLInputElement).value = work.id;
-          (document.getElementById("edit-work-content") as HTMLTextAreaElement).value = work.content || "";
-          if (modal) modal.open = true;
-        }
-
-        function closeEditModal() {
-          if (modal) modal.open = false;
-          editForm.reset();
-        }
-
-        document.getElementById("edit-btn")?.addEventListener("click", () => openEditModal(work));
-        document.getElementById("cancel-btn")?.addEventListener("click", closeEditModal);
-
-        editForm.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const id = (document.getElementById("edit-work-id") as HTMLInputElement).value;
-          const content = (document.getElementById("edit-work-content") as HTMLTextAreaElement).value;
-          try {
-            const res = await api.updateWork(parseInt(id), { content });
-            if (res.code === 0) {
-              closeEditModal();
-              loadWork();
-              toast.success("保存成功");
-            } else {
-              toast.error(res.message || "保存失败");
-            }
-          } catch (e) {
-            toast.error("保存失败");
-          }
+        document.getElementById("edit-btn")?.addEventListener("click", () => {
+          window.dispatchEvent(new CustomEvent("work:open-edit-modal", {
+            detail: { id: work.id, content: work.content || "" }
+          }))
         });
       } else {
         container.innerHTML = `

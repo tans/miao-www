@@ -1,27 +1,11 @@
 ---
 import AdminLayout from "@/layouts/AdminLayout.astro";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { InspirationModal } from "@/components/InspirationModal";
 ---
 
 <AdminLayout title="灵感管理" activeMenu="inspirations">
@@ -40,46 +24,12 @@ import {
       </CardContent>
     </Card>
 
-    <Dialog open={false} id="modal">
-      <DialogContent class="max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle id="modal-title">添加灵感</DialogTitle>
-        </DialogHeader>
-        <form id="inspiration-form" class="space-y-4">
-          <input type="hidden" id="inspiration-id" name="id" />
-          <div class="space-y-2">
-            <Label for="inspiration-title">标题</Label>
-            <Input type="text" id="inspiration-title" name="title" required placeholder="请输入标题" />
-          </div>
-          <div class="space-y-2">
-            <Label for="inspiration-content">内容</Label>
-            <Textarea id="inspiration-content" name="content" rows="4" placeholder="请输入内容" />
-          </div>
-          <div class="space-y-2">
-            <Label for="inspiration-cover">封面URL</Label>
-            <Input type="text" id="inspiration-cover" name="cover_url" placeholder="https://..." />
-          </div>
-          <div class="space-y-2">
-            <Label for="inspiration-status">状态</Label>
-            <select id="inspiration-status" name="status" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-              <option value="0">草稿</option>
-              <option value="1">已发布</option>
-              <option value="2">已下架</option>
-            </select>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" id="cancel-btn">取消</Button>
-            <Button type="submit">保存</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <InspirationModal client:only="react" id="modal" />
   </div>
 </AdminLayout>
 
 <script>
   import { api } from "@/lib/api";
-  import { toast } from "sonner";
 
   let currentPage = 1;
 
@@ -175,57 +125,12 @@ import {
     }
   }
 
-  // Modal handling
-  const modal = document.getElementById("modal") as any;
-  const modalTitle = document.getElementById("modal-title")!;
-  const form = document.getElementById("inspiration-form") as HTMLFormElement;
-
-  function openModal(isEdit: boolean, data?: any) {
-    modalTitle.textContent = isEdit ? "编辑灵感" : "添加灵感";
-    (document.getElementById("inspiration-id") as HTMLInputElement).value = data?.id || "";
-    (document.getElementById("inspiration-title") as HTMLInputElement).value = data?.title || "";
-    (document.getElementById("inspiration-content") as HTMLTextAreaElement).value = data?.content || "";
-    (document.getElementById("inspiration-cover") as HTMLInputElement).value = data?.cover_url || "";
-    (document.getElementById("inspiration-status") as HTMLSelectElement).value = String(data?.status ?? 1);
-    if (modal) modal.open = true;
+  // Open modal event handler
+  function handleOpenModal(isEdit: boolean, data?: any) {
+    window.dispatchEvent(new CustomEvent("inspiration:open-modal", { detail: { isEdit, data } }));
   }
 
-  function closeModal() {
-    if (modal) modal.open = false;
-    form.reset();
-  }
-
-  document.getElementById("add-btn")?.addEventListener("click", () => openModal(false));
-  document.getElementById("cancel-btn")?.addEventListener("click", closeModal);
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const id = (document.getElementById("inspiration-id") as HTMLInputElement).value;
-    const data = {
-      title: (document.getElementById("inspiration-title") as HTMLInputElement).value,
-      content: (document.getElementById("inspiration-content") as HTMLTextAreaElement).value,
-      cover_url: (document.getElementById("inspiration-cover") as HTMLInputElement).value,
-      status: parseInt((document.getElementById("inspiration-status") as HTMLSelectElement).value),
-    };
-
-    try {
-      let res;
-      if (id) {
-        res = await api.updateInspiration(parseInt(id), data);
-      } else {
-        res = await api.createInspiration(data);
-      }
-      if (res.code === 0) {
-        closeModal();
-        loadInspirations(currentPage);
-        toast.success("保存成功");
-      } else {
-        toast.error(res.message || "保存失败");
-      }
-    } catch (e) {
-      toast.error("保存失败");
-    }
-  });
+  document.getElementById("add-btn")?.addEventListener("click", () => handleOpenModal(false));
 
   document.getElementById("inspirations-container")?.addEventListener("click", async (e) => {
     const target = e.target as HTMLElement;
@@ -238,10 +143,10 @@ import {
       try {
         const res = await api.getInspirationDetail(parseInt(id));
         if (res.code === 0) {
-          openModal(true, res.data.inspiration);
+          handleOpenModal(true, res.data.inspiration);
         }
       } catch (e) {
-        toast.error("加载失败");
+        // handle error
       }
     } else if (action === "delete") {
       if (!confirm("确定删除该灵感？")) return;
@@ -249,12 +154,11 @@ import {
         const res = await api.deleteInspiration(parseInt(id));
         if (res.code === 0) {
           loadInspirations(currentPage);
-          toast.success("删除成功");
         } else {
-          toast.error(res.message || "删除失败");
+          alert(res.message || "删除失败");
         }
       } catch (e) {
-        toast.error("删除失败");
+        alert("删除失败");
       }
     }
   });
@@ -272,6 +176,6 @@ import {
   if (!token) {
     window.location.href = '/admin/login';
   } else {
-    loadInspirations();
+    loadInspirations(currentPage);
   }
 </script>

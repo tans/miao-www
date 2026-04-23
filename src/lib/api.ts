@@ -1,5 +1,5 @@
 const isDev = import.meta.env.DEV
-const API_BASE = import.meta.env.PUBLIC_API_URL || 'http://localhost:8888'
+const API_BASE = import.meta.env.PUBLIC_API_URL || 'https://miao-test.clawos.cc'
 
 export interface ApiResponse<T = unknown> {
   code: number
