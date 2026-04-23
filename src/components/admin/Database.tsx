@@ -82,14 +82,16 @@ export function Database() {
         setSchema(schemaRes.data.schema);
       }
       if (dataRes.code === 0) {
-        const rows = dataRes.data.result || [];
+        const rawResult = dataRes.data.result;
+        // Handle both array result or object with rows property
+        const rows = Array.isArray(rawResult) ? rawResult : (Array.isArray(rawResult?.rows) ? rawResult.rows : []);
         if (rows.length > 0) {
           setQueryResult({
             columns: Object.keys(rows[0]),
             rows,
           });
         } else {
-          setQueryError("查询成功，但无返回数据");
+          setQueryError("数据为空或格式未知: " + JSON.stringify(rawResult)?.slice(0, 100));
         }
       } else {
         setQueryError(dataRes.message);
