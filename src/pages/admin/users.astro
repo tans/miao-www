@@ -14,17 +14,23 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
       <h1 class="text-2xl font-semibold">用户管理</h1>
       <div class="flex items-center gap-3">
         <Input type="search" placeholder="搜索用户名/邮箱/手机..." class="w-64" id="search-input" />
-        <select id="role-filter" class="flex h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-          <option value="">全部角色</option>
-          <option value="creator">创作者</option>
-          <option value="business">商家</option>
-          <option value="admin">管理员</option>
-        </select>
-        <select id="status-filter" class="flex h-8 rounded-md border border-input bg-transparent px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-          <option value="">全部状态</option>
-          <option value="active">正常</option>
-          <option value="disabled">禁用</option>
-        </select>
+        <div class="relative">
+          <select id="role-filter" class="h-8 pl-3 pr-8 rounded-md border border-input bg-transparent text-sm appearance-none cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            <option value="">全部角色</option>
+            <option value="creator">创作者</option>
+            <option value="business">商家</option>
+            <option value="admin">管理员</option>
+          </select>
+          <svg class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        <div class="relative">
+          <select id="status-filter" class="h-8 pl-3 pr-8 rounded-md border border-input bg-transparent text-sm appearance-none cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            <option value="">全部状态</option>
+            <option value="active">正常</option>
+            <option value="disabled">禁用</option>
+          </select>
+          <svg class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
         <Button variant="outline" size="sm" id="reset-btn">重置</Button>
       </div>
     </div>

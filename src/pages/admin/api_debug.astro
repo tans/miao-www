@@ -20,9 +20,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
       </h4>
       <div class="flex gap-2">
         <Input type="text" id="search-api" placeholder="搜索 API..." class="w-48" />
-        <select id="filter-tag" class="flex h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm w-36">
-          <option value="">全部标签</option>
-        </select>
+        <div class="relative">
+          <select id="filter-tag" class="h-8 pl-3 pr-8 rounded-lg border border-input bg-transparent text-sm appearance-none cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 w-36">
+            <option value="">全部标签</option>
+          </select>
+          <svg class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
         <Button size="sm" variant="outline" onclick="expandAll()">展开全部</Button>
         <Button size="sm" variant="outline" onclick="collapseAll()">收起全部</Button>
       </div>
@@ -43,9 +46,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
         <div class="flex gap-4 items-end flex-wrap">
           <div class="flex-1 min-w-48">
             <Label class="mb-1 block">选择用户:</Label>
-            <select id="sim-user-select" onchange="onUserSelect()" class="flex h-8 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm">
+            <div class="relative">
+            <select id="sim-user-select" onchange="onUserSelect()" class="h-8 w-full rounded-lg border border-input bg-transparent pl-3 pr-8 py-1 text-sm appearance-none cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
               <option value="">-- 手动输入Token --</option>
             </select>
+            <svg class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
           </div>
           <div class="flex-1 min-w-48 hidden" id="sim-user-password-section">
             <Label class="mb-1 block">用户密码:</Label>

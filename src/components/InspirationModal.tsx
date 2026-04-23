@@ -128,16 +128,19 @@ export function InspirationModal({ onSaved }: InspirationModalProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="inspiration-status">状态</Label>
-              <select
-                id="inspiration-status"
-                value={status}
-                onChange={(e) => setStatus(parseInt(e.target.value))}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-              >
-                <option value="0">草稿</option>
-                <option value="1">已发布</option>
-                <option value="2">已下架</option>
-              </select>
+              <div className="relative">
+                <select
+                  id="inspiration-status"
+                  value={status}
+                  onChange={(e) => setStatus(parseInt(e.target.value))}
+                  className="h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm appearance-none cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="0">草稿</option>
+                  <option value="1">已发布</option>
+                  <option value="2">已下架</option>
+                </select>
+                <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </div>
             </div>
             <div className="-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end">
               <Button type="button" variant="outline" onClick={closeModal}>
