@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 ---
 
 <AdminLayout title="系统设置" activeMenu="settings">
-  <div class="settings-page">
-    <h1 class="page-title">系统设置</h1>
+  <div class="max-w-[800px]">
+    <h1 class="text-2xl font-semibold mb-6">系统设置</h1>
 
     <Card>
       <CardHeader>
@@ -87,27 +87,3 @@ import { Label } from "@/components/ui/label";
     loadSettings();
   }
 </script>
-
-<style>
-  .settings-page {
-    max-width: 800px;
-  }
-
-  .page-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-  }
-
-  .space-y-4 > * + * {
-    margin-top: 1rem;
-  }
-
-  .space-y-2 > * + * {
-    margin-top: 0.5rem;
-  }
-
-  .pt-2 {
-    padding-top: 0.5rem;
-  }
-</style>

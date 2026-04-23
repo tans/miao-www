@@ -5,17 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 ---
 
 <AdminLayout title="用户详情" activeMenu="users">
-  <div class="user-detail-page">
-    <div class="page-header">
-      <a href="/admin/users" class="back-link">← 返回列表</a>
-      <h1 class="page-title">用户详情</h1>
+  <div class="max-w-[1200px]">
+    <div class="mb-6">
+      <a href="/admin/users" class="text-muted-foreground hover:text-primary text-sm mb-2 inline-block">← 返回列表</a>
+      <h1 class="text-2xl font-semibold">用户详情</h1>
     </div>
 
     <div id="user-container">
-      <div class="loading">加载中...</div>
+      <div class="text-center py-12 text-muted-foreground">加载中...</div>
     </div>
   </div>
 </AdminLayout>
@@ -28,10 +29,14 @@ import { Input } from "@/components/ui/input";
   const userId = urlParams.get("id");
 
   if (!userId) {
-    document.getElementById("user-container")!.innerHTML = `<div class="error-message">缺少用户ID参数</div>`;
+    document.getElementById("user-container")!.innerHTML = `
+      <Alert variant="destructive">
+        <AlertDescription>缺少用户ID参数</AlertDescription>
+      </Alert>
+    `;
   }
 
-  const statusMap: Record<number, { label: string; variant: string }> = {
+  const statusMap: Record<number, { label: string; variant: "default" | "destructive" | "secondary" }> = {
     1: { label: "正常", variant: "default" },
     2: { label: "禁用", variant: "destructive" },
     3: { label: "冻结", variant: "secondary" },
@@ -52,7 +57,7 @@ import { Input } from "@/components/ui/input";
       if (res.code === 0) {
         const user = res.data.user;
         container.innerHTML = `
-          <div class="detail-grid">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle>基本信息</CardTitle>
@@ -142,7 +147,7 @@ import { Input } from "@/components/ui/input";
             </CardHeader>
             <CardContent class="p-0">
               <div id="transactions-container">
-                <div class="loading-sm">加载中...</div>
+                <div class="text-center py-4 text-muted-foreground">加载中...</div>
               </div>
             </CardContent>
           </Card>
@@ -180,10 +185,18 @@ import { Input } from "@/components/ui/input";
 
         loadTransactions();
       } else {
-        container.innerHTML = `<div class="error-message">${res.message}</div>`;
+        container.innerHTML = `
+          <Alert variant="destructive">
+            <AlertDescription>${res.message}</AlertDescription>
+          </Alert>
+        `;
       }
     } catch (e) {
-      container.innerHTML = `<div class="error-message">加载失败</div>`;
+      container.innerHTML = `
+        <Alert variant="destructive">
+          <AlertDescription>加载失败</AlertDescription>
+        </Alert>
+      `;
     }
   }
 
@@ -196,7 +209,11 @@ import { Input } from "@/components/ui/input";
       if (res.code === 0) {
         const txs = res.data.transactions || [];
         if (txs.length === 0) {
-          container.innerHTML = `<div class="empty-state">暂无交易记录</div>`;
+          container.innerHTML = `
+            <Alert class="m-4">
+              <AlertDescription>暂无交易记录</AlertDescription>
+            </Alert>
+          `;
           return;
         }
         container.innerHTML = `
@@ -227,7 +244,11 @@ import { Input } from "@/components/ui/input";
         `;
       }
     } catch (e) {
-      container.innerHTML = `<div class="error-message">加载交易记录失败</div>`;
+      container.innerHTML = `
+        <Alert variant="destructive" class="m-4">
+          <AlertDescription>加载交易记录失败</AlertDescription>
+        </Alert>
+      `;
     }
   }
 
@@ -238,99 +259,3 @@ import { Input } from "@/components/ui/input";
     loadUser();
   }
 </script>
-
-<style>
-  .user-detail-page {
-    max-width: 1200px;
-  }
-
-  .page-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .back-link {
-    color: var(--admin-text-muted);
-    text-decoration: none;
-    font-size: 0.875rem;
-    margin-bottom: 0.5rem;
-    display: inline-block;
-  }
-
-  .back-link:hover {
-    color: var(--admin-primary);
-  }
-
-  .page-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-  }
-
-  .loading, .loading-sm, .empty-state {
-    text-align: center;
-    padding: 2rem;
-    color: var(--admin-text-muted);
-  }
-
-  .loading-sm {
-    padding: 1rem;
-  }
-
-  .error-message {
-    padding: 1rem;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #dc2626;
-    border-radius: 0.5rem;
-  }
-
-  .detail-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .space-y-3 > * + * {
-    margin-top: 0.75rem;
-  }
-
-  .space-y-4 > * + * {
-    margin-top: 1rem;
-  }
-
-  .py-2 {
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-  }
-
-  .border-b {
-    border-bottom: 1px solid var(--admin-border);
-  }
-
-  .flex {
-    display: flex;
-  }
-
-  .justify-between {
-    justify-content: space-between;
-  }
-
-  .items-center {
-    align-items: center;
-  }
-
-  .gap-3 {
-    gap: 0.75rem;
-  }
-
-  .w-20 {
-    width: 5rem;
-  }
-
-  .w-32 {
-    width: 8rem;
-  }
-
-  .mt-6 {
-    margin-top: 1.5rem;
-  }
-</style>

@@ -5,17 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 ---
 
 <AdminLayout title="申诉详情" activeMenu="appeals">
-  <div class="appeal-detail-page">
-    <div class="page-header">
-      <a href="/admin/appeals" class="back-link">← 返回列表</a>
-      <h1 class="page-title">申诉详情</h1>
+  <div class="max-w-[1200px]">
+    <div class="mb-6">
+      <a href="/admin/appeals" class="text-muted-foreground hover:text-primary text-sm mb-2 inline-block">← 返回列表</a>
+      <h1 class="text-2xl font-semibold">申诉详情</h1>
     </div>
 
     <div id="appeal-container">
-      <div class="loading">加载中...</div>
+      <div class="text-center py-12 text-muted-foreground">加载中...</div>
     </div>
   </div>
 </AdminLayout>
@@ -28,10 +29,14 @@ import { Label } from "@/components/ui/label";
   const appealId = urlParams.get("id");
 
   if (!appealId) {
-    document.getElementById("appeal-container")!.innerHTML = `<div class="error-message">缺少申诉ID参数</div>`;
+    document.getElementById("appeal-container")!.innerHTML = `
+      <Alert variant="destructive">
+        <AlertDescription>缺少申诉ID参数</AlertDescription>
+      </Alert>
+    `;
   }
 
-  const statusMap: Record<number, { label: string; variant: string }> = {
+  const statusMap: Record<number, { label: string; variant: "default" | "secondary" | "outline" }> = {
     1: { label: "待处理", variant: "secondary" },
     2: { label: "已处理", variant: "default" },
     3: { label: "已关闭", variant: "outline" },
@@ -52,8 +57,8 @@ import { Label } from "@/components/ui/label";
       if (res.code === 0) {
         const appeal = res.data.appeal;
         container.innerHTML = `
-          <div class="detail-grid">
-            <Card class="col-span-2">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card class="lg:col-span-2">
               <CardHeader>
                 <CardTitle>申诉信息</CardTitle>
               </CardHeader>
@@ -93,7 +98,7 @@ import { Label } from "@/components/ui/label";
               </CardContent>
             </Card>
 
-            <Card class="col-span-2">
+            <Card class="lg:col-span-2">
               <CardHeader>
                 <CardTitle>申诉原因</CardTitle>
               </CardHeader>
@@ -103,7 +108,7 @@ import { Label } from "@/components/ui/label";
             </Card>
 
             ${appeal.reply ? `
-            <Card class="col-span-2">
+            <Card class="lg:col-span-2">
               <CardHeader>
                 <CardTitle>处理回复</CardTitle>
               </CardHeader>
@@ -161,10 +166,18 @@ import { Label } from "@/components/ui/label";
           }
         });
       } else {
-        container.innerHTML = `<div class="error-message">${res.message}</div>`;
+        container.innerHTML = `
+          <Alert variant="destructive">
+            <AlertDescription>${res.message}</AlertDescription>
+          </Alert>
+        `;
       }
     } catch (e) {
-      container.innerHTML = `<div class="error-message">加载失败</div>`;
+      container.innerHTML = `
+        <Alert variant="destructive">
+          <AlertDescription>加载失败</AlertDescription>
+        </Alert>
+      `;
     }
   }
 
@@ -175,97 +188,3 @@ import { Label } from "@/components/ui/label";
     loadAppeal();
   }
 </script>
-
-<style>
-  .appeal-detail-page {
-    max-width: 1200px;
-  }
-
-  .page-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .back-link {
-    color: var(--admin-text-muted);
-    text-decoration: none;
-    font-size: 0.875rem;
-    margin-bottom: 0.5rem;
-    display: inline-block;
-  }
-
-  .back-link:hover {
-    color: var(--admin-primary);
-  }
-
-  .page-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-  }
-
-  .loading {
-    text-align: center;
-    padding: 3rem;
-    color: var(--admin-text-muted);
-  }
-
-  .error-message {
-    padding: 1rem;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #dc2626;
-    border-radius: 0.5rem;
-  }
-
-  .detail-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .col-span-2 {
-    grid-column: span 2;
-  }
-
-  @media (max-width: 768px) {
-    .col-span-2 {
-      grid-column: span 1;
-    }
-  }
-
-  .space-y-3 > * + * {
-    margin-top: 0.75rem;
-  }
-
-  .space-y-4 > * + * {
-    margin-top: 1rem;
-  }
-
-  .py-2 {
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-  }
-
-  .border-b {
-    border-bottom: 1px solid var(--admin-border);
-  }
-
-  .flex {
-    display: flex;
-  }
-
-  .justify-between {
-    justify-content: space-between;
-  }
-
-  .items-center {
-    align-items: center;
-  }
-
-  .whitespace-pre-wrap {
-    white-space: pre-wrap;
-  }
-
-  .w-full {
-    width: 100%;
-  }
-</style>

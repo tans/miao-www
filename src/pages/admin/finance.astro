@@ -2,14 +2,16 @@
 import AdminLayout from "@/layouts/AdminLayout.astro";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 ---
 
 <AdminLayout title="资金管理" activeMenu="finance">
-  <div class="finance-page">
-    <h1 class="page-title">资金管理</h1>
+  <div class="max-w-[1400px]">
+    <h1 class="text-2xl font-semibold mb-6">资金管理</h1>
 
-    <div id="stats-container">
-      <div class="loading">加载中...</div>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="stats-container">
+      <div class="text-center py-12 text-muted-foreground">加载中...</div>
     </div>
 
     <Card class="mt-6">
@@ -18,9 +20,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
       </CardHeader>
       <CardContent class="p-0">
         <div id="transactions-container">
-          <div class="loading">加载中...</div>
+          <div class="text-center py-12 text-muted-foreground">加载中...</div>
         </div>
-        <div class="pagination" id="pagination"></div>
+        <div class="flex justify-center items-center gap-4 p-4 border-t" id="pagination"></div>
       </CardContent>
     </Card>
   </div>
@@ -47,35 +49,33 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
       if (statsRes.code === 0) {
         const stats = statsRes.data;
         statsContainer.innerHTML = `
-          <div class="stats-grid">
-            <Card>
-              <CardHeader class="pb-2">
-                <CardTitle class="text-sm font-normal text-muted-foreground">总收入</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="text-2xl font-bold text-green-600">¥${(stats.total_revenue || 0).toFixed(2)}</div>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader class="pb-2">
+              <CardTitle class="text-sm font-normal text-muted-foreground">总收入</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-bold text-green-600">¥${(stats.total_revenue || 0).toFixed(2)}</div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader class="pb-2">
-                <CardTitle class="text-sm font-normal text-muted-foreground">今日收入</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="text-2xl font-bold text-green-600">¥${(stats.today_revenue || 0).toFixed(2)}</div>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader class="pb-2">
+              <CardTitle class="text-sm font-normal text-muted-foreground">今日收入</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-bold text-green-600">¥${(stats.today_revenue || 0).toFixed(2)}</div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader class="pb-2">
-                <CardTitle class="text-sm font-normal text-muted-foreground">总交易笔数</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="text-2xl font-bold">${stats.total_transactions || 0}</div>
-                <p class="text-xs text-muted-foreground">笔</p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader class="pb-2">
+              <CardTitle class="text-sm font-normal text-muted-foreground">总交易笔数</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-bold">${stats.total_transactions || 0}</div>
+              <p class="text-xs text-muted-foreground">笔</p>
+            </CardContent>
+          </Card>
         `;
       }
 
@@ -86,7 +86,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
         const totalPages = Math.ceil(total / 20);
 
         if (transactions.length === 0) {
-          txContainer.innerHTML = `<div class="empty-state">暂无数据</div>`;
+          txContainer.innerHTML = `
+            <Alert class="m-4">
+              <AlertDescription>暂无数据</AlertDescription>
+            </Alert>
+          `;
           paginationEl.innerHTML = "";
           return;
         }
@@ -126,23 +130,35 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
           </Table>
         `;
 
-        paginationEl.innerHTML = totalPages > 1 ? `
-          <a href="#" class="page-btn ${page <= 1 ? 'disabled' : ''}" data-page="${page - 1}">上一页</a>
-          <span class="page-info">第 ${page} / ${totalPages} 页，共 ${total} 条</span>
-          <a href="#" class="page-btn ${page >= totalPages ? 'disabled' : ''}" data-page="${page + 1}">下一页</a>
-        ` : "";
+        if (totalPages > 1) {
+          paginationEl.innerHTML = `
+            <Button variant="outline" size="sm" ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}">上一页</Button>
+            <span class="text-sm text-muted-foreground">第 ${page} / ${totalPages} 页，共 ${total} 条</span>
+            <Button variant="outline" size="sm" ${page >= totalPages ? 'disabled' : ''} data-page="${page + 1}">下一页</Button>
+          `;
+        } else {
+          paginationEl.innerHTML = "";
+        }
       }
     } catch (e) {
-      statsContainer.innerHTML = `<div class="error-message">加载失败</div>`;
-      txContainer.innerHTML = `<div class="error-message">加载失败</div>`;
+      statsContainer.innerHTML = `
+        <Alert variant="destructive" class="col-span-full">
+          <AlertDescription>加载失败</AlertDescription>
+        </Alert>
+      `;
+      txContainer.innerHTML = `
+        <Alert variant="destructive" class="m-4">
+          <AlertDescription>加载失败</AlertDescription>
+        </Alert>
+      `;
     }
   }
 
   document.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
-    if (target.classList.contains("page-btn") && !target.classList.contains("disabled")) {
-      e.preventDefault();
-      currentPage = parseInt(target.dataset.page || "1");
+    const btn = target.closest("button[data-page]");
+    if (btn && !btn.hasAttribute("disabled")) {
+      currentPage = parseInt(btn.getAttribute("data-page") || "1");
       loadFinance(currentPage);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -155,69 +171,3 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
     loadFinance();
   }
 </script>
-
-<style>
-  .finance-page {
-    max-width: 1400px;
-  }
-
-  .page-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-
-  .loading, .empty-state {
-    text-align: center;
-    padding: 3rem;
-    color: var(--admin-text-muted);
-  }
-
-  .error-message {
-    padding: 1rem;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #dc2626;
-    border-radius: 0.5rem;
-    margin: 1rem;
-  }
-
-  .pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    border-top: 1px solid var(--admin-border);
-  }
-
-  .page-btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    color: var(--admin-text);
-    text-decoration: none;
-    border: 1px solid var(--admin-border);
-    border-radius: 0.375rem;
-  }
-
-  .page-btn:hover:not(.disabled) {
-    border-color: var(--admin-primary);
-    color: var(--admin-primary);
-  }
-
-  .page-btn.disabled {
-    opacity: 0.5;
-    pointer-events: none;
-  }
-
-  .page-info {
-    font-size: 0.875rem;
-    color: var(--admin-text-muted);
-  }
-</style>
