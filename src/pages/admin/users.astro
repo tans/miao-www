@@ -12,7 +12,22 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
   <div class="max-w-[1400px]">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-semibold">用户管理</h1>
-      <Input type="search" placeholder="搜索用户..." class="w-64" id="search-input" />
+      <div class="flex items-center gap-3">
+        <Input type="search" placeholder="搜索用户名/邮箱/手机..." class="w-64" id="search-input" />
+        <select id="role-filter" class="flex h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm">
+          <option value="">全部角色</option>
+          <option value="1">创作者</option>
+          <option value="2">商家</option>
+          <option value="3">管理员</option>
+        </select>
+        <select id="status-filter" class="flex h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm">
+          <option value="">全部状态</option>
+          <option value="1">正常</option>
+          <option value="2">禁用</option>
+          <option value="3">冻结</option>
+        </select>
+        <Button variant="outline" size="sm" id="reset-btn">重置</Button>
+      </div>
     </div>
 
     <Card>
@@ -28,8 +43,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 <script>
   import { api } from "@/lib/api";
+  import { toast } from "sonner";
 
   let currentPage = 1;
+  let searchKeyword = "";
+  let roleFilter = "";
+  let statusFilter = "";
+  let debounceTimer: ReturnType<typeof setTimeout>;
 
   const statusMap: Record<number, { label: string; variant: "default" | "destructive" | "secondary" }> = {
     1: { label: "正常", variant: "default" },
@@ -48,8 +68,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
     const paginationEl = document.getElementById("pagination");
     if (!container || !paginationEl) return;
 
+    container.innerHTML = `<div class="text-center py-12 text-muted-foreground">加载中...</div>`;
+
     try {
-      const res = await api.getUsers({ page, page_size: 20 });
+      const params: Record<string, any> = { page, page_size: 20 };
+      if (searchKeyword) params.keyword = searchKeyword;
+      if (roleFilter) params.role = parseInt(roleFilter);
+      if (statusFilter) params.status = parseInt(statusFilter);
+
+      const res = await api.getUsers(params);
       if (res.code === 0) {
         const users = res.data.users || [];
         const total = res.data.total || 0;
@@ -58,7 +85,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
         if (users.length === 0) {
           container.innerHTML = `
             <Alert class="m-4">
-              <AlertDescription>暂无数据</AlertDescription>
+              <AlertDescription>暂无数据${searchKeyword || roleFilter || statusFilter ? "，请调整筛选条件" : ""}</AlertDescription>
             </Alert>
           `;
           paginationEl.innerHTML = "";
@@ -75,6 +102,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
                 <TableHead>手机</TableHead>
                 <TableHead>角色</TableHead>
                 <TableHead>余额</TableHead>
+                <TableHead>信用分</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>注册时间</TableHead>
                 <TableHead>操作</TableHead>
@@ -92,11 +120,19 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
                   </TableCell>
                   <TableCell class="font-mono">¥${(user.balance || 0).toFixed(2)}</TableCell>
                   <TableCell>
+                    <span class="font-mono text-sm ${(user.credit_score || 0) < 60 ? "text-red-500" : "text-green-600"}">${user.credit_score || 0}</span>
+                  </TableCell>
+                  <TableCell>
                     <Badge variant="${statusMap[user.status]?.variant || "secondary"}">${statusMap[user.status]?.label || "未知"}</Badge>
                   </TableCell>
                   <TableCell class="text-muted-foreground text-xs">${new Date(user.created_at).toLocaleDateString("zh-CN")}</TableCell>
                   <TableCell>
-                    <a href="/admin/user-detail?id=${user.id}" class="text-primary hover:underline text-sm">详情</a>
+                    <div class="flex gap-2">
+                      <a href="/admin/user-detail?id=${user.id}" class="text-primary hover:underline text-sm">详情</a>
+                      <button class="text-destructive hover:underline text-sm" data-action="toggle-status" data-id="${user.id}" data-current="${user.status}">
+                        ${user.status === 1 ? "禁用" : "启用"}
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               `).join("")}
@@ -106,19 +142,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
         if (totalPages > 1) {
           paginationEl.innerHTML = `
-            <Button
-              variant="outline"
-              size="sm"
-              ${page <= 1 ? 'disabled' : ''}
-              data-page="${page - 1}"
-            >上一页</Button>
+            <Button variant="outline" size="sm" ${page <= 1 ? "disabled" : ""} data-page="${page - 1}">上一页</Button>
             <span class="text-sm text-muted-foreground">第 ${page} / ${totalPages} 页，共 ${total} 条</span>
-            <Button
-              variant="outline"
-              size="sm"
-              ${page >= totalPages ? 'disabled' : ''}
-              data-page="${page + 1}"
-            >下一页</Button>
+            <Button variant="outline" size="sm" ${page >= totalPages ? "disabled" : ""} data-page="${page + 1}">下一页</Button>
           `;
         } else {
           paginationEl.innerHTML = "";
@@ -141,6 +167,42 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
     }
   }
 
+  // Search with debounce
+  document.getElementById("search-input")?.addEventListener("input", (e) => {
+    const target = e.target as HTMLInputElement;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      searchKeyword = target.value.trim();
+      currentPage = 1;
+      loadUsers(1);
+    }, 300);
+  });
+
+  // Filter handlers
+  document.getElementById("role-filter")?.addEventListener("change", (e) => {
+    roleFilter = (e.target as HTMLSelectElement).value;
+    currentPage = 1;
+    loadUsers(1);
+  });
+
+  document.getElementById("status-filter")?.addEventListener("change", (e) => {
+    statusFilter = (e.target as HTMLSelectElement).value;
+    currentPage = 1;
+    loadUsers(1);
+  });
+
+  // Reset button
+  document.getElementById("reset-btn")?.addEventListener("click", () => {
+    (document.getElementById("search-input") as HTMLInputElement).value = "";
+    (document.getElementById("role-filter") as HTMLSelectElement).value = "";
+    (document.getElementById("status-filter") as HTMLSelectElement).value = "";
+    searchKeyword = "";
+    roleFilter = "";
+    statusFilter = "";
+    currentPage = 1;
+    loadUsers(1);
+  });
+
   // Pagination handler
   document.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
@@ -149,6 +211,31 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
       currentPage = parseInt(btn.getAttribute("data-page") || "1");
       loadUsers(currentPage);
       window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  });
+
+  // Action handlers (toggle status)
+  document.addEventListener("click", async (e) => {
+    const target = e.target as HTMLElement;
+    const action = target.dataset.action;
+    if (action === "toggle-status") {
+      const id = target.dataset.id;
+      const current = parseInt(target.dataset.current || "1");
+      if (!id) return;
+      const newStatus = current === 1 ? 2 : 1;
+      const actionText = newStatus === 1 ? "启用" : "禁用";
+      if (!confirm(`确定${actionText}该用户？`)) return;
+      try {
+        const res = await api.updateUserStatus(parseInt(id), newStatus);
+        if (res.code === 0) {
+          toast.success(`已${actionText}`);
+          loadUsers(currentPage);
+        } else {
+          toast.error("操作失败: " + res.message);
+        }
+      } catch (e) {
+        toast.error("操作失败");
+      }
     }
   });
 
