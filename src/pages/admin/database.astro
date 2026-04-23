@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 ---
 
 <AdminLayout title="数据库管理" activeMenu="database">
@@ -15,12 +17,12 @@ import { Label } from "@/components/ui/label";
         <CardTitle>执行 SQL 查询</CardTitle>
       </CardHeader>
       <CardContent>
-        <div class="sql-form">
-          <div class="form-group">
-            <Label for="sql-input">SQL 语句</Label>
-            <textarea id="sql-input" class="sql-input" rows="4" placeholder="SELECT * FROM users LIMIT 10;"></textarea>
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <Label htmlFor="sql-input">SQL 语句</Label>
+            <Textarea id="sql-input" class="font-mono" rows="4" placeholder="SELECT * FROM users LIMIT 10;" />
           </div>
-          <div class="form-actions">
+          <div class="flex gap-2">
             <Button id="execute-btn">执行查询</Button>
             <Button id="clear-btn" variant="outline">清空结果</Button>
           </div>
@@ -28,7 +30,7 @@ import { Label } from "@/components/ui/label";
       </CardContent>
     </Card>
 
-    <Card>
+    <Card class="mb-6">
       <CardHeader>
         <CardTitle>数据库表</CardTitle>
       </CardHeader>
@@ -39,7 +41,7 @@ import { Label } from "@/components/ui/label";
       </CardContent>
     </Card>
 
-    <Card class="mt-6">
+    <Card>
       <CardHeader>
         <CardTitle>查询结果</CardTitle>
       </CardHeader>
@@ -79,8 +81,10 @@ import { Label } from "@/components/ui/label";
                   </svg>
                 </div>
                 <span class="table-name">${table}</span>
-                <button class="btn-sm" data-action="schema">结构</button>
-                <button class="btn-sm" data-action="select">查询</button>
+                <div class="flex gap-2">
+                  <button class="btn-sm" data-action="schema">结构</button>
+                  <button class="btn-sm" data-action="select">查询</button>
+                </div>
               </div>
             `).join("")}
           </div>
@@ -119,27 +123,27 @@ import { Label } from "@/components/ui/label";
         const schema = res.data.schema;
         resultsContainer.innerHTML = `
           <div class="schema-info">
-            <h4>${tableName} 表结构</h4>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>字段名</th>
-                  <th>类型</th>
-                  <th>可空</th>
-                  <th>默认值</th>
-                </tr>
-              </thead>
-              <tbody>
+            <h4 class="font-medium mb-4">${tableName} 表结构</h4>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>字段名</TableHead>
+                  <TableHead>类型</TableHead>
+                  <TableHead>可空</TableHead>
+                  <TableHead>默认值</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 ${(schema.columns || []).map((col: any) => `
-                  <tr>
-                    <td class="font-mono">${col.name}</td>
-                    <td class="text-muted">${col.type}</td>
-                    <td>${col.nullable ? "是" : "否"}</td>
-                    <td class="text-muted">${col.default || "-"}</td>
-                  </tr>
+                  <TableRow>
+                    <TableCell class="font-mono">${col.name}</TableCell>
+                    <TableCell class="text-muted-foreground">${col.type}</TableCell>
+                    <TableCell>${col.nullable ? "是" : "否"}</TableCell>
+                    <TableCell class="text-muted-foreground">${col.default || "-"}</TableCell>
+                  </TableRow>
                 `).join("")}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         `;
       } else {
@@ -181,20 +185,20 @@ import { Label } from "@/components/ui/label";
         resultsContainer.innerHTML = `
           <div class="results-info">返回 ${rows.length} 行</div>
           <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  ${columns.map(col => `<th>${col}</th>`).join("")}
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  ${columns.map(col => `<TableHead>${col}</TableHead>`).join("")}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 ${rows.slice(0, 100).map(row => `
-                  <tr>
-                    ${columns.map(col => `<td>${row[col] ?? "-"}</td>`).join("")}
-                  </tr>
+                  <TableRow>
+                    ${columns.map(col => `<TableCell>${row[col] ?? "-"}</TableCell>`).join("")}
+                  </TableRow>
                 `).join("")}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
           ${rows.length > 100 ? `<div class="results-info">仅显示前 100 行</div>` : ""}
         `;
@@ -245,14 +249,10 @@ import { Label } from "@/components/ui/label";
     margin-bottom: 1.5rem;
   }
 
-  .mt-6 {
-    margin-top: 1.5rem;
-  }
-
   .loading, .empty-state {
     text-align: center;
     padding: 2rem;
-    color: var(--text-muted);
+    color: var(--admin-text-muted);
   }
 
   .error-message {
@@ -264,35 +264,12 @@ import { Label } from "@/components/ui/label";
     margin: 1rem;
   }
 
-  .sql-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+  .space-y-4 > * + * {
+    margin-top: 1rem;
   }
 
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .sql-input {
-    padding: 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    font-family: monospace;
-    font-size: 0.875rem;
-    resize: vertical;
-  }
-
-  .sql-input:focus {
-    outline: none;
-    border-color: var(--primary);
-  }
-
-  .form-actions {
-    display: flex;
-    gap: 0.75rem;
+  .space-y-2 > * + * {
+    margin-top: 0.5rem;
   }
 
   .tables-grid {
@@ -309,19 +286,19 @@ import { Label } from "@/components/ui/label";
     gap: 0.5rem;
     padding: 1rem;
     background: #fafafa;
-    border: 1px solid var(--border);
+    border: 1px solid var(--admin-border);
     border-radius: 0.5rem;
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .table-card:hover {
-    border-color: var(--primary);
+    border-color: var(--admin-primary);
     background: rgba(233, 69, 96, 0.05);
   }
 
   .table-icon {
-    color: var(--text-muted);
+    color: var(--admin-text-muted);
   }
 
   .table-name {
@@ -334,64 +311,34 @@ import { Label } from "@/components/ui/label";
     padding: 0.25rem 0.75rem;
     font-size: 0.75rem;
     background: white;
-    border: 1px solid var(--border);
+    border: 1px solid var(--admin-border);
     border-radius: 0.25rem;
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .btn-sm:hover {
-    border-color: var(--primary);
-    color: var(--primary);
+    border-color: var(--admin-primary);
+    color: var(--admin-primary);
   }
 
   .results-info {
     padding: 0.75rem 1rem;
     background: #fafafa;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--admin-border);
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--admin-text-muted);
   }
 
   .table-responsive {
     overflow-x: auto;
   }
 
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.875rem;
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: 0.625rem 1rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-    max-width: 300px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .data-table th {
-    background: #fafafa;
-    font-weight: 500;
-    color: var(--text-muted);
-    position: sticky;
-    top: 0;
-  }
-
-  .data-table td {
-    font-family: monospace;
-  }
-
   .schema-info {
     padding: 1rem;
   }
 
-  .schema-info h4 {
-    font-size: 1rem;
+  .mb-4 {
     margin-bottom: 1rem;
   }
 </style>

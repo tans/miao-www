@@ -1,0 +1,637 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+---
+
+<AdminLayout title="接口调试" activeMenu="api_debug">
+  <div class="api-debug-container">
+    <div class="flex justify-between items-center mb-4">
+      <h4 class="mb-0 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"></path>
+          <path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2v-5a2 2 0 0 0-2-2h-1"></path>
+        </svg>
+        API 调试台
+      </h4>
+      <div class="flex gap-2">
+        <Input type="text" id="search-api" placeholder="搜索 API..." class="w-48" />
+        <select id="filter-tag" class="flex h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm w-36">
+          <option value="">全部标签</option>
+        </select>
+        <Button size="sm" variant="outline" onclick="expandAll()">展开全部</Button>
+        <Button size="sm" variant="outline" onclick="collapseAll()">收起全部</Button>
+      </div>
+    </div>
+
+    <!-- Simulate User Panel -->
+    <Card class="mb-4 border-l-4 border-l-destructive">
+      <CardHeader class="bg-destructive text-destructive-foreground py-2">
+        <CardTitle class="text-sm flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          模拟用户操作
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div class="flex gap-4 items-end flex-wrap">
+          <div class="flex-1 min-w-48">
+            <Label class="mb-1 block">选择用户:</Label>
+            <select id="sim-user-select" onchange="onUserSelect()" class="flex h-8 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm">
+              <option value="">-- 手动输入Token --</option>
+            </select>
+          </div>
+          <div class="flex-1 min-w-48 hidden" id="sim-user-password-section">
+            <Label class="mb-1 block">用户密码:</Label>
+            <Input type="password" id="sim-user-password" placeholder="输入用户密码" />
+          </div>
+          <div class="hidden" id="sim-user-btn-section">
+            <Label class="mb-1 block">&nbsp;</Label>
+            <Button onclick="getSimUserToken()" class="w-full">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1">
+                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+              </svg>
+              获取Token
+            </Button>
+          </div>
+          <div class="flex-1 min-w-48 hidden" id="sim-user-info">
+            <Label class="mb-1 block">已模拟用户:</Label>
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-800" id="sim-user-badge"></span>
+              <span class="text-sm text-muted-foreground" id="sim-user-role"></span>
+              <Button size="sm" variant="ghost" onclick="clearSimUser()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div class="mt-2 hidden" id="sim-user-token-display">
+          <span class="text-sm text-muted-foreground">当前Token: </span>
+          <code class="text-xs break-all bg-muted p-1 rounded" id="sim-user-token-preview"></code>
+        </div>
+      </CardContent>
+    </Card>
+
+    <div id="api-loading" class="text-center py-12">
+      <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent"></div>
+      <p class="mt-2 text-muted-foreground">正在加载 API 定义...</p>
+    </div>
+
+    <div id="api-container"></div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { api } from "@/lib/api";
+
+  const API_BASE = '/api/v1';
+  let openapiSpec: any = null;
+  let simUserToken: string | null = null;
+  let simUserInfo: any = null;
+  let allUsers: any[] = [];
+
+  async function loadUsersForSim() {
+    const token = api.getToken();
+    if (!token) return;
+
+    try {
+      const res = await fetch('/api/v1/admin/users?page=1&page_size=100', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (data.code === 0 && data.data) {
+        allUsers = data.data.users || [];
+        const select = document.getElementById('sim-user-select') as HTMLSelectElement;
+        allUsers.forEach((user: any) => {
+          const opt = document.createElement('option');
+          opt.value = user.id;
+          opt.textContent = `${user.username} (${user.role === 1 ? '创作者' : user.role === 2 ? '商家' : '未知'}) - ID:${user.id}`;
+          select.appendChild(opt);
+        });
+      }
+    } catch (e) {
+      console.error('Load users failed:', e);
+    }
+  }
+
+  function onUserSelect() {
+    const select = document.getElementById('sim-user-select') as HTMLSelectElement;
+    const passwordSection = document.getElementById('sim-user-password-section')!;
+    const btnSection = document.getElementById('sim-user-btn-section')!;
+    const userInfo = document.getElementById('sim-user-info')!;
+    const tokenDisplay = document.getElementById('sim-user-token-display')!;
+
+    if (select.value) {
+      passwordSection.classList.remove('hidden');
+      btnSection.classList.remove('hidden');
+      userInfo.classList.add('hidden');
+      tokenDisplay.classList.add('hidden');
+      simUserToken = null;
+      simUserInfo = null;
+    } else {
+      passwordSection.classList.add('hidden');
+      btnSection.classList.add('hidden');
+      userInfo.classList.add('hidden');
+      tokenDisplay.classList.add('hidden');
+      simUserToken = null;
+      simUserInfo = null;
+    }
+  }
+
+  async function getSimUserToken() {
+    const select = document.getElementById('sim-user-select') as HTMLSelectElement;
+    const password = (document.getElementById('sim-user-password') as HTMLInputElement).value;
+    const userId = select.value;
+
+    if (!userId) {
+      alert('请选择用户');
+      return;
+    }
+    if (!password) {
+      alert('请输入用户密码');
+      return;
+    }
+
+    const user = allUsers.find((u: any) => u.id == userId);
+    if (!user) {
+      alert('用户不存在');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user.username, password: password })
+      });
+      const data = await res.json();
+
+      if (data.code === 0 && data.data && data.data.token) {
+        simUserToken = data.data.token;
+        simUserInfo = { username: user.username, role: user.role, id: user.id };
+
+        document.getElementById('sim-user-password-section')!.classList.add('hidden');
+        document.getElementById('sim-user-btn-section')!.classList.add('hidden');
+        document.getElementById('sim-user-info')!.classList.remove('hidden');
+        document.getElementById('sim-user-token-display')!.classList.remove('hidden');
+
+        const badge = document.getElementById('sim-user-badge')!;
+        badge.textContent = `${user.username} (ID:${user.id})`;
+
+        const role = document.getElementById('sim-user-role')!;
+        role.textContent = '角色: ' + (user.role === 1 ? '创作者' : user.role === 2 ? '商家' : '未知');
+
+        const preview = document.getElementById('sim-user-token-preview')!;
+        preview.textContent = simUserToken;
+
+        (document.querySelectorAll('[data-endpoint-token]') as NodeListOf<HTMLInputElement>).forEach(input => {
+          input.value = simUserToken || '';
+        });
+
+        alert('已获取 ' + user.username + ' 的Token');
+      } else {
+        alert(data.message || '登录失败');
+      }
+    } catch (e: any) {
+      alert('获取Token失败: ' + e.message);
+    }
+  }
+
+  function clearSimUser() {
+    simUserToken = null;
+    simUserInfo = null;
+
+    (document.getElementById('sim-user-select') as HTMLSelectElement).value = '';
+    (document.getElementById('sim-user-password') as HTMLInputElement).value = '';
+    document.getElementById('sim-user-password-section')!.classList.add('hidden');
+    document.getElementById('sim-user-btn-section')!.classList.add('hidden');
+    document.getElementById('sim-user-info')!.classList.add('hidden');
+    document.getElementById('sim-user-token-display')!.classList.add('hidden');
+
+    (document.querySelectorAll('[data-endpoint-token]') as NodeListOf<HTMLInputElement>).forEach(input => {
+      input.value = '';
+    });
+  }
+
+  async function loadAPI() {
+    try {
+      const res = await fetch('/docs/openapi.json');
+      openapiSpec = await res.json();
+      renderAPI(openapiSpec);
+      document.getElementById('api-loading')!.style.display = 'none';
+    } catch (e: any) {
+      document.getElementById('api-loading')!.innerHTML = '<div class="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">加载 API 定义失败: ' + e.message + '</div>';
+    }
+  }
+
+  function renderAPI(spec: any) {
+    const container = document.getElementById('api-container')!;
+    const tags = spec.tags || [];
+    const paths = spec.paths || {};
+
+    const tagFilter = document.getElementById('filter-tag') as HTMLSelectElement;
+    tags.forEach((tag: any) => {
+      const opt = document.createElement('option');
+      opt.value = tag.name;
+      opt.textContent = tag.name;
+      tagFilter.appendChild(opt);
+    });
+
+    const tagPaths: Record<string, any[]> = {};
+    Object.entries(paths).forEach(([path, methods]: [string, any]) => {
+      Object.entries(methods).forEach(([method, info]: [string, any]) => {
+        const tagName = (info.tags && info.tags[0]) || '其他';
+        if (!tagPaths[tagName]) tagPaths[tagName] = [];
+        tagPaths[tagName].push({ path, method, ...info });
+      });
+    });
+
+    let html = '';
+    tags.forEach((tag: any) => {
+      const endpoints = tagPaths[tag.name] || [];
+      if (endpoints.length === 0) return;
+      html += `<div class="tag-section mb-8" data-tag="${tag.name}">
+        <h5 class="text-base font-semibold mb-3 pb-2 border-b border-primary text-primary">${tag.name} <span class="text-xs bg-muted px-2 py-0.5 rounded">${endpoints.length}</span></h5>`;
+      endpoints.forEach((ep: any) => {
+        html += renderEndpoint(ep);
+      });
+      html += '</div>';
+    });
+
+    const otherEndpoints = tagPaths['其他'] || [];
+    if (otherEndpoints.length > 0) {
+      html += `<div class="tag-section mb-8" data-tag="其他">
+        <h5 class="text-base font-semibold mb-3 pb-2 border-b border-muted-foreground/20 text-muted-foreground">其他 <span class="text-xs bg-muted px-2 py-0.5 rounded">${otherEndpoints.length}</span></h5>`;
+      otherEndpoints.forEach((ep: any) => {
+        html += renderEndpoint(ep);
+      });
+      html += '</div>';
+    }
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('.endpoint-header').forEach((header) => {
+      header.addEventListener('click', () => {
+        const details = header.nextElementSibling as HTMLElement;
+        details.classList.toggle('active');
+      });
+    });
+
+    if (simUserToken) {
+      (document.querySelectorAll('[data-endpoint-token]') as NodeListOf<HTMLInputElement>).forEach(input => {
+        input.value = simUserToken || '';
+      });
+    }
+  }
+
+  function renderEndpoint(ep: any) {
+    const epId = 'ep-' + ep.method + '-' + ep.path.replace(/\//g, '_');
+    const security = ep.security || [];
+    const isAuth = security.length > 0;
+    const hasReqBody = ep.requestBody;
+    const params = ep.parameters || [];
+
+    let paramsHtml = '';
+    if (params.length > 0) {
+      paramsHtml = '<div class="mb-3"><strong class="text-sm">Query/Path 参数:</strong>';
+      params.forEach((p: any) => {
+        const required = p.required ? '<span class="text-destructive">*</span>' : '';
+        const place = p.in === 'path' ? '路径参数' : '查询参数';
+        paramsHtml += `<div class="param-row my-2">
+          <label class="text-sm font-medium">${p.name}${required} <small class="text-muted-foreground">(${place})</small></label>
+          <input type="text" class="flex h-8 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm mt-1" data-param="${p.name}" data-in="${p.in}" placeholder="${p.schema ? (p.schema.default || '') : ''}">
+        </div>`;
+      });
+      paramsHtml += '</div>';
+    }
+
+    let requestBodyHtml = '';
+    if (hasReqBody) {
+      const schema = hasReqBody.content ? (hasReqBody.content['application/json'] ? hasReqBody.content['application/json'].schema || {} : {}) : {};
+      requestBodyHtml = `<div class="mb-3">
+        <strong class="text-sm">Request Body:</strong>
+        <textarea class="form-control form-control-sm request-body mt-2 font-mono text-xs" data-body placeholder='${JSON.stringify(generateExample(schema), null, 2)}'></textarea>
+      </div>`;
+    }
+
+    const authBadge = isAuth ?
+      '<span class="inline-flex items-center rounded-md bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>需要认证</span>' :
+      '<span class="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>公开</span>';
+
+    const defaultToken = simUserToken || '';
+
+    return `<div class="endpoint-card mb-3 border-l-4 border-l-primary bg-card rounded-lg" data-path="${ep.path}" data-method="${ep.method}">
+      <div class="endpoint-header cursor-pointer p-3 bg-muted/50 rounded-lg flex items-center gap-3 hover:bg-muted">
+        <span class="method-badge method-${ep.method} font-bold px-2 py-0.5 rounded text-white text-xs">${ep.method.toUpperCase()}</span>
+        <code class="flex-1 text-sm">${ep.path}</code>
+        ${authBadge}
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-muted-foreground"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="endpoint-details p-3 hidden">
+        <div class="mb-3 text-sm"><strong>说明:</strong> ${ep.summary || ''} ${ep.description || ''}</div>
+        <div class="bg-muted/30 rounded-lg p-3">
+          <div class="flex gap-2 mb-3 items-center">
+            <label class="text-sm mb-0">认证 Token:</label>
+            <input type="text" class="flex-1 h-8 px-3 rounded-lg border border-input bg-transparent text-sm" data-endpoint-token id="token-${epId}" value="${defaultToken}" placeholder="Bearer token">
+          </div>
+          ${paramsHtml}
+          ${requestBodyHtml}
+          <div class="flex gap-2">
+            <button class="send-btn inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90" onclick="sendRequest('${ep.method}', '${ep.path}', '${epId}')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              发送
+            </button>
+            <button class="btn-outline inline-flex items-center justify-center rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-muted" onclick="clearResponse('${epId}')">清空</button>
+          </div>
+        </div>
+        <div class="mt-3"><strong>Response:</strong>
+          <div class="response-area mt-2 bg-zinc-900 text-zinc-200 p-3 rounded-lg max-h-96 overflow-auto font-mono text-xs whitespace-pre-wrap" id="response-${epId}">点击发送查看响应...</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function generateExample(schema: any) {
+    if (!schema || !schema.properties) return {};
+    const example: any = {};
+    Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
+      if (schema.required && schema.required.includes(key)) {
+        if (prop.type === 'string') example[key] = prop.example || prop.default || '';
+        else if (prop.type === 'integer' || prop.type === 'number') example[key] = prop.default || 0;
+        else if (prop.type === 'boolean') example[key] = false;
+        else example[key] = null;
+      }
+    });
+    return example;
+  }
+
+  async function sendRequest(method: string, path: string, epId: string) {
+    let token = (document.getElementById('token-' + epId) as HTMLInputElement).value;
+    const responseEl = document.getElementById('response-' + epId)!;
+    const btn = responseEl.closest('.endpoint-card')!.querySelector('.send-btn') as HTMLButtonElement;
+
+    if (!token && simUserToken) {
+      token = simUserToken;
+    }
+
+    if (!token) {
+      responseEl.innerHTML = '<span style="color:#dc3545;">请先输入认证 Token 或选择模拟用户</span>';
+      return;
+    }
+
+    btn.classList.add('loading');
+    btn.disabled = true;
+    responseEl.textContent = '发送中...';
+
+    const url = new URL(API_BASE + path, window.location.origin);
+    const bodyObj: any = {};
+
+    responseEl.closest('.endpoint-card')!.querySelectorAll('[data-param]').forEach((input) => {
+      const el = input as HTMLInputElement;
+      const val = el.value;
+      if (!val) return;
+      if (el.dataset.in === 'query') {
+        url.searchParams.append(el.dataset.param!, val);
+      } else {
+        url.pathname = url.pathname.replace('{' + el.dataset.param + '}', val);
+      }
+    });
+
+    responseEl.closest('.endpoint-card')!.querySelectorAll('[data-body]').forEach((textarea) => {
+      const el = textarea as HTMLTextAreaElement;
+      if (el.value.trim()) {
+        try {
+          Object.assign(bodyObj, JSON.parse(el.value));
+        } catch (e: any) {
+          responseEl.innerHTML = '<span style="color:#dc3545;">JSON 解析错误: ' + e.message + '</span>';
+          btn.classList.remove('loading');
+          btn.disabled = false;
+          return;
+        }
+      }
+    });
+
+    try {
+      const options: RequestInit = {
+        method: method.toUpperCase(),
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        }
+      };
+      if (['POST', 'PUT', 'PATCH'].includes(options.method!) && Object.keys(bodyObj).length > 0) {
+        options.body = JSON.stringify(bodyObj);
+      }
+
+      const start = Date.now();
+      const res = await fetch(url.pathname + url.search, options);
+      const latency = Date.now() - start;
+      const data = await res.json();
+      const jsonStr = JSON.stringify(data, null, 2);
+
+      responseEl.innerHTML = `<span style="color:#6f42c1;">[${res.status}] ${res.statusText} (${latency}ms)</span>\n\n${jsonStr}`;
+    } catch (e: any) {
+      responseEl.innerHTML = '<span style="color:#dc3545;">请求失败: ' + e.message + '</span>';
+    }
+
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+
+  function clearResponse(epId: string) {
+    const el = document.getElementById('response-' + epId)!;
+    el.textContent = '点击发送查看响应...';
+  }
+
+  function expandAll() {
+    document.querySelectorAll('.endpoint-details').forEach(el => el.classList.add('active'));
+  }
+
+  function collapseAll() {
+    document.querySelectorAll('.endpoint-details').forEach(el => el.classList.remove('active'));
+  }
+
+  function filterAPI() {
+    const keyword = (document.getElementById('search-api') as HTMLInputElement).value.toLowerCase();
+    const tag = (document.getElementById('filter-tag') as HTMLSelectElement).value;
+
+    document.querySelectorAll('.endpoint-card').forEach(card => {
+      const path = (card as HTMLElement).dataset.path?.toLowerCase() || '';
+      const method = (card as HTMLElement).dataset.method?.toLowerCase() || '';
+      const matchesKeyword = path.includes(keyword) || method.includes(keyword);
+      const matchesTag = !tag || (card.closest('.tag-section') as HTMLElement)?.dataset.tag === tag;
+
+      (card as HTMLElement).style.display = matchesKeyword && matchesTag ? '' : 'none';
+    });
+
+    document.querySelectorAll('.tag-section').forEach(section => {
+      const visibleCards = section.querySelectorAll('.endpoint-card[style=""], .endpoint-card:not([style])');
+      (section as HTMLElement).style.display = visibleCards.length > 0 ? '' : 'none';
+    });
+  }
+
+  document.getElementById('search-api')?.addEventListener('input', filterAPI);
+  document.getElementById('filter-tag')?.addEventListener('change', filterAPI);
+
+  // Initialize
+  const token = localStorage.getItem('admin_token');
+  if (!token) {
+    window.location.href = '/admin/login';
+  } else {
+    loadUsersForSim();
+    loadAPI();
+  }
+</script>
+
+<style>
+  .api-debug-container {
+    max-width: 1400px;
+  }
+
+  .endpoint-card {
+    border-left-width: 4px;
+  }
+
+  .endpoint-header:hover {
+    background: var(--muted);
+  }
+
+  .method-badge {
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: white;
+  }
+
+  .method-post { background: #28a745; }
+  .method-get { background: #007bff; }
+  .method-put { background: #fd7e14; }
+  .method-delete { background: #dc3545; }
+
+  .endpoint-details.active {
+    display: block;
+  }
+
+  .param-row {
+    margin-bottom: 0.75rem;
+  }
+
+  .param-label {
+    font-weight: 500;
+    color: #495057;
+  }
+
+  .param-required {
+    color: #dc3545;
+    margin-left: 2px;
+  }
+
+  .request-body {
+    font-family: 'Courier New', monospace;
+    min-height: 150px;
+  }
+
+  .response-area {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem;
+    border-radius: 8px;
+    max-height: 400px;
+    overflow: auto;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+  }
+
+  .send-btn {
+    min-width: 100px;
+  }
+
+  .tag-section {
+    margin-bottom: 2rem;
+  }
+
+  .tag-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--color-primary);
+  }
+
+  .loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .sim-user-panel {
+    border-left: 4px solid #dc3545;
+  }
+
+  .sim-user-panel .card-header {
+    background: #dc3545;
+    color: white;
+  }
+
+  .sim-user-token {
+    font-family: monospace;
+    font-size: 0.85rem;
+    word-break: break-all;
+    background: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 4px;
+  }
+
+  .border-l-4 {
+    border-left-width: 4px;
+  }
+
+  .border-l-destructive {
+    border-left-color: #dc3545;
+  }
+
+  .border-l-primary {
+    border-left-color: var(--primary);
+  }
+
+  .text-destructive {
+    color: #dc3545;
+  }
+
+  .bg-destructive {
+    background-color: #dc3545;
+  }
+
+  .text-destructive-foreground {
+    color: white;
+  }
+
+  .bg-zinc-900 {
+    background-color: #18181b;
+  }
+
+  .text-zinc-200 {
+    color: #e4e4e7;
+  }
+
+  .font-mono {
+    font-family: ui-monospace, monospace;
+  }
+
+  .max-h-96 {
+    max-height: 24rem;
+  }
+
+  .whitespace-pre-wrap {
+    white-space: pre-wrap;
+  }
+</style>

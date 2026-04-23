@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.PUBLIC_API_URL || 'http://localhost:8080'
+const isDev = import.meta.env.DEV
+const API_BASE = import.meta.env.PUBLIC_API_URL || 'http://localhost:8888'
 
 export interface ApiResponse<T = unknown> {
   code: number
@@ -125,7 +126,9 @@ class ApiClient {
       ...options.headers,
     }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const url = isDev ? endpoint : `${API_BASE}${endpoint}`
+
+    const response = await fetch(url, {
       ...options,
       headers,
     })
@@ -344,4 +347,4 @@ class ApiClient {
 }
 
 export const api = new ApiClient()
-export { API_BASE }
+export { API_BASE, isDev }

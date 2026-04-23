@@ -46,25 +46,25 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
           <CardContent>
             <form id="login-form" class="login-form">
               <div class="form-group">
-                <Label for="username">用户名</Label>
+                <Label htmlFor="username">用户名</Label>
                 <Input
                   type="text"
                   id="username"
                   name="username"
                   placeholder="请输入用户名"
                   required
-                  autocomplete="username"
+                  autoComplete="username"
                 />
               </div>
               <div class="form-group">
-                <Label for="password">密码</Label>
+                <Label htmlFor="password">密码</Label>
                 <Input
                   type="password"
                   id="password"
                   name="password"
                   placeholder="请输入密码"
                   required
-                  autocomplete="current-password"
+                  autoComplete="current-password"
                 />
               </div>
               <div id="error-message" class="error-message" style="display: none;"></div>
@@ -120,12 +120,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
     <style>
       :root {
-        --primary: #e94560;
-        --primary-hover: #d63d56;
-        --bg: #f5f6f8;
-        --text: #2d3436;
-        --text-muted: #636e72;
-        --border: #e5e5e5;
+        --admin-primary: oklch(0.65 0.2 15);
+        --admin-primary-hover: oklch(0.55 0.18 15);
+        --admin-bg: oklch(0.97 0 0);
+        --admin-text: oklch(0.145 0 0);
+        --admin-text-muted: oklch(0.556 0 0);
+        --admin-border: oklch(0.922 0 0);
       }
 
       * {
@@ -135,9 +135,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
       }
 
       body {
-        font-family: "Outfit", -apple-system, BlinkMacSystemFont, sans-serif;
-        background: var(--bg);
-        color: var(--text);
+        font-family: var(--font-sans);
+        background: var(--admin-bg);
+        color: var(--admin-text);
         min-height: 100vh;
       }
 
@@ -174,7 +174,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
         justify-content: center;
         width: 64px;
         height: 64px;
-        background: linear-gradient(135deg, var(--primary) 0%, #ff6b81 100%);
+        background: linear-gradient(135deg, var(--admin-primary) 0%, #ff6b81 100%);
         border-radius: 1rem;
         margin-bottom: 1rem;
         color: white;
@@ -183,13 +183,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
       :global(.card-title) {
         font-size: 1.25rem;
         font-weight: 600;
-        color: var(--text);
+        color: var(--admin-text);
         margin-bottom: 0.25rem;
       }
 
       :global(.card-description) {
         font-size: 0.875rem;
-        color: var(--text-muted);
+        color: var(--admin-text-muted);
       }
 
       :global(.login-card .card-content) {
@@ -211,12 +211,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
       :global(.form-group label) {
         font-size: 0.875rem;
         font-weight: 500;
-        color: var(--text);
+        color: var(--admin-text);
       }
 
       :global(.form-group input) {
         padding: 0.625rem 0.875rem;
-        border: 1px solid var(--border);
+        border: 1px solid var(--admin-border);
         border-radius: 0.5rem;
         font-size: 0.9375rem;
         transition: border-color 0.2s, box-shadow 0.2s;
@@ -224,7 +224,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
       :global(.form-group input:focus) {
         outline: none;
-        border-color: var(--primary);
+        border-color: var(--admin-primary);
         box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
       }
 
@@ -240,7 +240,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
       .login-btn {
         width: 100%;
         padding: 0.75rem;
-        background: linear-gradient(135deg, var(--primary) 0%, #ff6b81 100%);
+        background: linear-gradient(135deg, var(--admin-primary) 0%, #ff6b81 100%);
         color: white;
         border: none;
         border-radius: 0.5rem;

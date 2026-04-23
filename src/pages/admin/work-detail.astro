@@ -2,6 +2,9 @@
 import AdminLayout from "@/layouts/AdminLayout.astro";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 ---
 
 <AdminLayout title="作品详情" activeMenu="works">
@@ -13,12 +16,32 @@ import { Badge } from "@/components/ui/badge";
 
     <div id="work-container">
       <div class="loading">加载中...</div>
+    <div id="edit-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content" role="dialog" aria-modal="true">
+        <div class="modal-header">
+          <h2 id="edit-modal-title" class="text-lg font-semibold">编辑作品</h2>
+          <button class="modal-close" id="modal-close" aria-label="关闭">×</button>
+        </div>
+        <form id="edit-work-form" class="space-y-4">
+          <input type="hidden" id="edit-work-id" name="id" />
+          <div class="space-y-2">
+            <Label for="edit-work-content">作品内容</Label>
+            <Textarea id="edit-work-content" name="content" rows="5" placeholder="请输入内容"></Textarea>
+          </div>
+          <div class="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="outline" id="cancel-btn">取消</Button>
+            <Button type="submit">保存</Button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </AdminLayout>
 
 <script>
   import { api } from "@/lib/api";
+  import { toast } from "sonner";
 
   const urlParams = new URLSearchParams(window.location.search);
   const workId = urlParams.get("id");
@@ -27,10 +50,10 @@ import { Badge } from "@/components/ui/badge";
     document.getElementById("work-container")!.innerHTML = `<div class="error-message">缺少作品ID参数</div>`;
   }
 
-  const statusMap: Record<number, { label: string; class: string }> = {
-    1: { label: "待审核", class: "bg-yellow-100 text-yellow-800" },
-    2: { label: "已通过", class: "bg-green-100 text-green-800" },
-    3: { label: "未通过", class: "bg-red-100 text-red-800" },
+  const statusMap: Record<number, { label: string; variant: string }> = {
+    1: { label: "待审核", variant: "secondary" },
+    2: { label: "已通过", variant: "default" },
+    3: { label: "未通过", variant: "destructive" },
   };
 
   async function loadWork() {
@@ -47,38 +70,38 @@ import { Badge } from "@/components/ui/badge";
               <CardHeader>
                 <CardTitle>作品信息</CardTitle>
               </CardHeader>
-              <CardContent class="info-list">
-                <div class="info-item">
-                  <span class="info-label">作品ID</span>
-                  <span class="info-value font-mono">${work.id}</span>
+              <CardContent class="space-y-3">
+                <div class="flex justify-between py-2 border-b">
+                  <span class="text-muted-foreground text-sm">作品ID</span>
+                  <span class="font-mono text-sm">${work.id}</span>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">任务ID</span>
-                  <span class="info-value font-mono"><a href="/admin/task-detail?id=${work.task_id}" class="link">${work.task_id}</a></span>
+                <div class="flex justify-between py-2 border-b">
+                  <span class="text-muted-foreground text-sm">任务ID</span>
+                  <a href="/admin/task-detail?id=${work.task_id}" class="text-primary hover:underline font-mono text-sm">${work.task_id}</a>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">认领ID</span>
-                  <span class="info-value font-mono">${work.claim_id}</span>
+                <div class="flex justify-between py-2 border-b">
+                  <span class="text-muted-foreground text-sm">认领ID</span>
+                  <span class="font-mono text-sm">${work.claim_id}</span>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">创作者ID</span>
-                  <span class="info-value font-mono"><a href="/admin/user-detail?id=${work.creator_id}" class="link">${work.creator_id}</a></span>
+                <div class="flex justify-between py-2 border-b">
+                  <span class="text-muted-foreground text-sm">创作者ID</span>
+                  <a href="/admin/user-detail?id=${work.creator_id}" class="text-primary hover:underline font-mono text-sm">${work.creator_id}</a>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">状态</span>
-                  <span class="info-value"><span class="badge ${statusMap[work.status]?.class || "bg-gray-100"}">${statusMap[work.status]?.label || "未知"}</span></span>
+                <div class="flex justify-between py-2 border-b">
+                  <span class="text-muted-foreground text-sm">状态</span>
+                  <Badge variant="${statusMap[work.status]?.variant || "secondary"}">${statusMap[work.status]?.label || "未知"}</Badge>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">审核结果</span>
-                  <span class="info-value">${work.review_result === 1 ? "通过" : work.review_result === 2 ? "未通过" : "待审核"}</span>
+                <div class="flex justify-between py-2 border-b">
+                  <span class="text-muted-foreground text-sm">审核结果</span>
+                  <span class="text-sm">${work.review_result === 1 ? "通过" : work.review_result === 2 ? "未通过" : "待审核"}</span>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">提交时间</span>
-                  <span class="info-value">${work.created_at ? new Date(work.created_at).toLocaleString("zh-CN") : "-"}</span>
+                <div class="flex justify-between py-2 border-b">
+                  <span class="text-muted-foreground text-sm">提交时间</span>
+                  <span class="text-sm">${work.created_at ? new Date(work.created_at).toLocaleString("zh-CN") : "-"}</span>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">审核时间</span>
-                  <span class="info-value">${work.review_at ? new Date(work.review_at).toLocaleString("zh-CN") : "-"}</span>
+                <div class="flex justify-between py-2">
+                  <span class="text-muted-foreground text-sm">审核时间</span>
+                  <span class="text-sm">${work.review_at ? new Date(work.review_at).toLocaleString("zh-CN") : "-"}</span>
                 </div>
               </CardContent>
             </Card>
@@ -88,7 +111,7 @@ import { Badge } from "@/components/ui/badge";
                 <CardTitle>作品内容</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="work-content">${work.content || "无文字内容"}</div>
+                <div class="whitespace-pre-wrap text-sm">${work.content || "无文字内容"}</div>
               </CardContent>
             </Card>
 
@@ -101,7 +124,7 @@ import { Badge } from "@/components/ui/badge";
                 <div class="images-grid">
                   ${work.images.map((img: string) => `
                     <div class="image-item">
-                      <img src="${img}" alt="作品图片" />
+                      <img src="${img}" alt="作品图片" class="w-full h-40 object-cover rounded-lg border" />
                     </div>
                   `).join("")}
                 </div>
@@ -115,11 +138,9 @@ import { Badge } from "@/components/ui/badge";
                 <CardTitle>视频 (${work.videos.length})</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="videos-list">
+                <div class="videos-list space-y-4">
                   ${work.videos.map((video: string) => `
-                    <div class="video-item">
-                      <video controls src="${video}"></video>
-                    </div>
+                    <video controls src="${video}" class="w-full max-h-96 rounded-lg border"></video>
                   `).join("")}
                 </div>
               </CardContent>
@@ -130,12 +151,13 @@ import { Badge } from "@/components/ui/badge";
               <CardHeader>
                 <CardTitle>操作</CardTitle>
               </CardHeader>
-              <CardContent class="actions">
+              <CardContent class="flex gap-3 flex-wrap">
                 ${work.status === 1 ? `
-                <button class="btn btn-success" id="approve-btn">通过</button>
-                <button class="btn btn-danger" id="reject-btn">拒绝</button>
+                <Button size="sm" class="bg-green-600 hover:bg-green-700" id="approve-btn">通过</Button>
+                <Button size="sm" variant="destructive" id="reject-btn">拒绝</Button>
                 ` : ""}
-                <button class="btn btn-outline" id="delete-btn">删除</button>
+                <Button size="sm" variant="outline" id="edit-btn">编辑</Button>
+                <Button size="sm" variant="outline" id="delete-btn">删除</Button>
               </CardContent>
             </Card>
           </div>
@@ -146,13 +168,13 @@ import { Badge } from "@/components/ui/badge";
           try {
             const res = await api.updateWork(parseInt(workId), { status: 2, review_result: 1 });
             if (res.code === 0) {
-              alert("已通过");
+              toast.success("已通过");
               loadWork();
             } else {
-              alert("操作失败: " + res.message);
+              toast.error("操作失败: " + res.message);
             }
           } catch (e) {
-            alert("操作失败");
+            toast.error("操作失败");
           }
         });
 
@@ -161,13 +183,13 @@ import { Badge } from "@/components/ui/badge";
           try {
             const res = await api.updateWork(parseInt(workId), { status: 3, review_result: 2 });
             if (res.code === 0) {
-              alert("已拒绝");
+              toast.success("已拒绝");
               loadWork();
             } else {
-              alert("操作失败: " + res.message);
+              toast.error("操作失败: " + res.message);
             }
           } catch (e) {
-            alert("操作失败");
+            toast.error("操作失败");
           }
         });
 
@@ -176,13 +198,53 @@ import { Badge } from "@/components/ui/badge";
           try {
             const res = await api.deleteWork(parseInt(workId));
             if (res.code === 0) {
-              alert("已删除");
+              toast.success("已删除");
               window.location.href = "/admin/works";
             } else {
-              alert("删除失败: " + res.message);
+              toast.error("删除失败: " + res.message);
             }
           } catch (e) {
-            alert("删除失败");
+            toast.error("删除失败");
+          }
+        });
+
+        // Edit modal handling
+        const modal = document.getElementById("edit-modal")!;
+        const editForm = document.getElementById("edit-work-form") as HTMLFormElement;
+
+        function openEditModal(work: any) {
+          (document.getElementById("edit-work-id") as HTMLInputElement).value = work.id;
+          (document.getElementById("edit-work-content") as HTMLTextAreaElement).value = work.content || "";
+          modal.classList.remove("hidden");
+          modal.setAttribute("aria-hidden", "false");
+        }
+
+        function closeEditModal() {
+          modal.classList.add("hidden");
+          modal.setAttribute("aria-hidden", "true");
+          editForm.reset();
+        }
+
+        document.getElementById("edit-btn")?.addEventListener("click", () => openEditModal(work));
+        document.getElementById("modal-close")?.addEventListener("click", closeEditModal);
+        document.getElementById("cancel-btn")?.addEventListener("click", closeEditModal);
+        document.querySelector(".modal-backdrop")?.addEventListener("click", closeEditModal);
+
+        editForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const id = (document.getElementById("edit-work-id") as HTMLInputElement).value;
+          const content = (document.getElementById("edit-work-content") as HTMLTextAreaElement).value;
+          try {
+            const res = await api.updateWork(parseInt(id), { content });
+            if (res.code === 0) {
+              closeEditModal();
+              loadWork();
+              toast.success("保存成功");
+            } else {
+              toast.error(res.message || "保存失败");
+            }
+          } catch (e) {
+            toast.error("保存失败");
           }
         });
       } else {
@@ -211,7 +273,7 @@ import { Badge } from "@/components/ui/badge";
   }
 
   .back-link {
-    color: var(--text-muted);
+    color: var(--admin-text-muted);
     text-decoration: none;
     font-size: 0.875rem;
     margin-bottom: 0.5rem;
@@ -219,7 +281,7 @@ import { Badge } from "@/components/ui/badge";
   }
 
   .back-link:hover {
-    color: var(--primary);
+    color: var(--admin-primary);
   }
 
   .page-title {
@@ -230,7 +292,7 @@ import { Badge } from "@/components/ui/badge";
   .loading {
     text-align: center;
     padding: 3rem;
-    color: var(--text-muted);
+    color: var(--admin-text-muted);
   }
 
   .error-message {
@@ -257,54 +319,45 @@ import { Badge } from "@/components/ui/badge";
     }
   }
 
-  :global(.info-list) {
+  .space-y-3 > * + * {
+    margin-top: 0.75rem;
+  }
+
+  .space-y-4 > * + * {
+    margin-top: 1rem;
+  }
+
+  .py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .border-b {
+    border-bottom: 1px solid var(--admin-border);
+  }
+
+  .flex {
     display: flex;
-    flex-direction: column;
+  }
+
+  .justify-between {
+    justify-content: space-between;
+  }
+
+  .items-center {
+    align-items: center;
+  }
+
+  .gap-3 {
     gap: 0.75rem;
   }
 
-  .info-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--border);
+  .flex-wrap {
+    flex-wrap: wrap;
   }
 
-  .info-item:last-child {
-    border-bottom: none;
-  }
-
-  .info-label {
-    color: var(--text-muted);
-    font-size: 0.875rem;
-  }
-
-  .info-value {
-    font-weight: 500;
-  }
-
-  .link {
-    color: var(--primary);
-    text-decoration: none;
-  }
-
-  .link:hover {
-    text-decoration: underline;
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 0.2rem 0.5rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-  }
-
-  .work-content {
+  .whitespace-pre-wrap {
     white-space: pre-wrap;
-    line-height: 1.6;
-    color: var(--text);
   }
 
   .images-grid {
@@ -313,69 +366,93 @@ import { Badge } from "@/components/ui/badge";
     gap: 1rem;
   }
 
-  .image-item img {
+  .w-full {
     width: 100%;
-    height: 150px;
+  }
+
+  .h-40 {
+    height: 10rem;
+  }
+
+  .object-cover {
     object-fit: cover;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
   }
 
-  .videos-list {
+  .rounded-lg {
+    border-radius: 0.5rem;
+  }
+
+  .max-h-96 {
+    max-height: 24rem;
+  }
+
+  /* Modal styles */
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    align-items: center;
+    justify-content: center;
   }
 
-  .video-item video {
-    width: 100%;
-    max-height: 400px;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
+  .modal.hidden {
+    display: none;
   }
 
-  .actions {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
   }
 
-  .btn {
-    padding: 0.625rem 1.5rem;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-success {
-    background: #10b981;
-    color: white;
-  }
-
-  .btn-success:hover {
-    background: #059669;
-  }
-
-  .btn-danger {
-    background: #ef4444;
-    color: white;
-  }
-
-  .btn-danger:hover {
-    background: #dc2626;
-  }
-
-  .btn-outline {
+  .modal-content {
+    position: relative;
     background: white;
-    border: 1px solid var(--border);
-    color: var(--text);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   }
 
-  .btn-outline:hover {
-    border-color: var(--primary);
-    color: var(--primary);
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-close {
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    border-radius: 0.375rem;
+    color: var(--admin-text-muted);
+  }
+
+  .modal-close:hover {
+    background: var(--admin-bg);
+    color: var(--admin-text);
+  }
+
+  .space-y-2 > * + * {
+    margin-top: 0.5rem;
+  }
+
+  .justify-end {
+    justify-content: flex-end;
+  }
+
+  .pt-2 {
+    padding-top: 0.5rem;
   }
 </style>

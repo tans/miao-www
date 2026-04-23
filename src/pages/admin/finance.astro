@@ -1,6 +1,7 @@
 ---
 import AdminLayout from "@/layouts/AdminLayout.astro";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 ---
 
 <AdminLayout title="资金管理" activeMenu="finance">
@@ -47,47 +48,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
         const stats = statsRes.data;
         statsContainer.innerHTML = `
           <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-header">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="1" x2="12" y2="23"></line>
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-                <span>总收入</span>
-              </div>
-              <div class="stat-content">
-                <span class="stat-value">¥${(stats.total_revenue || 0).toFixed(2)}</span>
-              </div>
-            </div>
+            <Card>
+              <CardHeader class="pb-2">
+                <CardTitle class="text-sm font-normal text-muted-foreground">总收入</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div class="text-2xl font-bold text-green-600">¥${(stats.total_revenue || 0).toFixed(2)}</div>
+              </CardContent>
+            </Card>
 
-            <div class="stat-card success">
-              <div class="stat-header">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                  <polyline points="17 6 23 6 23 12"></polyline>
-                </svg>
-                <span>今日收入</span>
-              </div>
-              <div class="stat-content">
-                <span class="stat-value">¥${(stats.today_revenue || 0).toFixed(2)}</span>
-              </div>
-            </div>
+            <Card>
+              <CardHeader class="pb-2">
+                <CardTitle class="text-sm font-normal text-muted-foreground">今日收入</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div class="text-2xl font-bold text-green-600">¥${(stats.today_revenue || 0).toFixed(2)}</div>
+              </CardContent>
+            </Card>
 
-            <div class="stat-card">
-              <div class="stat-header">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
-                <span>总交易笔数</span>
-              </div>
-              <div class="stat-content">
-                <span class="stat-value">${stats.total_transactions || 0}</span>
-                <span class="stat-label">笔</span>
-              </div>
-            </div>
+            <Card>
+              <CardHeader class="pb-2">
+                <CardTitle class="text-sm font-normal text-muted-foreground">总交易笔数</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div class="text-2xl font-bold">${stats.total_transactions || 0}</div>
+                <p class="text-xs text-muted-foreground">笔</p>
+              </CardContent>
+            </Card>
           </div>
         `;
       }
@@ -105,38 +92,38 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
         }
 
         txContainer.innerHTML = `
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>用户ID</th>
-                <th>类型</th>
-                <th>金额</th>
-                <th>余额变化</th>
-                <th>备注</th>
-                <th>时间</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>用户ID</TableHead>
+                <TableHead>类型</TableHead>
+                <TableHead>金额</TableHead>
+                <TableHead>余额变化</TableHead>
+                <TableHead>备注</TableHead>
+                <TableHead>时间</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               ${transactions.map((tx: any) => `
-                <tr>
-                  <td class="font-mono text-sm">${tx.id}</td>
-                  <td class="font-mono">${tx.user_id}</td>
-                  <td>${tx.type}</td>
-                  <td class="font-mono">
+                <TableRow>
+                  <TableCell class="font-mono text-xs">${tx.id}</TableCell>
+                  <TableCell class="font-mono text-xs">${tx.user_id}</TableCell>
+                  <TableCell>${tx.type}</TableCell>
+                  <TableCell class="font-mono">
                     <span class="${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}">
                       ${tx.amount >= 0 ? "+" : ""}¥${(tx.amount || 0).toFixed(2)}
                     </span>
-                  </td>
-                  <td class="font-mono text-muted">
+                  </TableCell>
+                  <TableCell class="font-mono text-muted-foreground text-xs">
                     ${(tx.balance_before || 0).toFixed(2)} → ${(tx.balance_after || 0).toFixed(2)}
-                  </td>
-                  <td class="text-muted text-sm">${tx.remark || "-"}</td>
-                  <td class="text-muted text-sm">${new Date(tx.created_at).toLocaleString("zh-CN")}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell class="text-muted-foreground text-xs">${tx.remark || "-"}</TableCell>
+                  <TableCell class="text-muted-foreground text-xs">${new Date(tx.created_at).toLocaleString("zh-CN")}</TableCell>
+                </TableRow>
               `).join("")}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         `;
 
         paginationEl.innerHTML = totalPages > 1 ? `
@@ -180,10 +167,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
     margin-bottom: 1.5rem;
   }
 
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
   .loading, .empty-state {
     text-align: center;
     padding: 3rem;
-    color: var(--text-muted);
+    color: var(--admin-text-muted);
   }
 
   .error-message {
@@ -195,89 +188,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
     margin: 1rem;
   }
 
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1.25rem;
-  }
-
-  .stat-card {
-    background: white;
-    border-radius: 0.75rem;
-    border: 1px solid var(--border);
-    overflow: hidden;
-  }
-
-  .stat-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 1.25rem;
-    background: #fafafa;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.875rem;
-    color: var(--text-muted);
-  }
-
-  .stat-card.success .stat-header svg {
-    color: #10b981;
-  }
-
-  .stat-content {
-    padding: 1.25rem;
-  }
-
-  .stat-value {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  .stat-label {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .data-table th {
-    background: #fafafa;
-    font-weight: 500;
-    font-size: 0.875rem;
-    color: var(--text-muted);
-  }
-
   .pagination {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--admin-border);
   }
 
   .page-btn {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
-    color: var(--text);
+    color: var(--admin-text);
     text-decoration: none;
-    border: 1px solid var(--border);
+    border: 1px solid var(--admin-border);
     border-radius: 0.375rem;
   }
 
   .page-btn:hover:not(.disabled) {
-    border-color: var(--primary);
-    color: var(--primary);
+    border-color: var(--admin-primary);
+    color: var(--admin-primary);
   }
 
   .page-btn.disabled {
@@ -287,6 +218,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
   .page-info {
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--admin-text-muted);
   }
 </style>

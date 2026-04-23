@@ -1,6 +1,8 @@
 ---
 import AdminLayout from "@/layouts/AdminLayout.astro";
 import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 ---
 
 <AdminLayout title="申诉管理" activeMenu="appeals">
@@ -31,10 +33,10 @@ import { Card, CardContent } from "@/components/ui/card";
   let currentPage = 1;
   let currentStatus = "";
 
-  const statusMap: Record<number, { label: string; class: string }> = {
-    1: { label: "待处理", class: "bg-yellow-100 text-yellow-800" },
-    2: { label: "已处理", class: "bg-green-100 text-green-800" },
-    3: { label: "已关闭", class: "bg-gray-100 text-gray-800" },
+  const statusMap: Record<number, { label: string; variant: string }> = {
+    1: { label: "待处理", variant: "secondary" },
+    2: { label: "已处理", variant: "default" },
+    3: { label: "已关闭", variant: "outline" },
   };
 
   const typeMap: Record<number, string> = {
@@ -65,39 +67,45 @@ import { Card, CardContent } from "@/components/ui/card";
         }
 
         container.innerHTML = `
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>类型</th>
-                <th>任务ID</th>
-                <th>用户ID</th>
-                <th>原因</th>
-                <th>状态</th>
-                <th>创建时间</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${appeals.map((appeal: any) => `
+          <div class="overflow-x-auto">
+            <table class="appeals-table">
+              <thead class="appeals-table-header">
                 <tr>
-                  <td class="font-mono text-sm">${appeal.id}</td>
-                  <td><span class="badge-outline">${typeMap[appeal.type] || "未知"}</span></td>
-                  <td class="font-mono">${appeal.task_id}</td>
-                  <td class="font-mono">${appeal.user_id}</td>
-                  <td class="max-w-xs truncate text-muted">${appeal.reason}</td>
-                  <td><span class="badge ${statusMap[appeal.status]?.class || "bg-gray-100"}">${statusMap[appeal.status]?.label || "未知"}</span></td>
-                  <td class="text-muted text-sm">${new Date(appeal.created_at).toLocaleDateString("zh-CN")}</td>
-                  <td>
-                    <div class="action-buttons">
-                      <a href="/admin/appeal-detail?id=${appeal.id}" class="action-link">详情</a>
-                      ${appeal.status === 1 ? `<button class="action-link text-green-600" data-action="handle" data-id="${appeal.id}">处理</button>` : ""}
-                    </div>
-                  </td>
+                  <th class="appeals-th">ID</th>
+                  <th class="appeals-th">类型</th>
+                  <th class="appeals-th">任务ID</th>
+                  <th class="appeals-th">用户ID</th>
+                  <th class="appeals-th">原因</th>
+                  <th class="appeals-th">状态</th>
+                  <th class="appeals-th">创建时间</th>
+                  <th class="appeals-th">操作</th>
                 </tr>
-              `).join("")}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                ${appeals.map((appeal: any) => `
+                  <tr class="appeals-tr">
+                    <td class="appeals-td font-mono text-xs">${appeal.id}</td>
+                    <td class="appeals-td">
+                      <span class="appeals-badge appeals-badge-outline">${typeMap[appeal.type] || "未知"}</span>
+                    </td>
+                    <td class="appeals-td font-mono text-xs">${appeal.task_id}</td>
+                    <td class="appeals-td font-mono text-xs">${appeal.user_id}</td>
+                    <td class="appeals-td max-w-xs truncate text-muted">${appeal.reason}</td>
+                    <td class="appeals-td">
+                      <span class="appeals-badge appeals-badge-${statusMap[appeal.status]?.variant || "secondary"}">${statusMap[appeal.status]?.label || "未知"}</span>
+                    </td>
+                    <td class="appeals-td text-muted text-xs">${new Date(appeal.created_at).toLocaleDateString("zh-CN")}</td>
+                    <td class="appeals-td">
+                      <div class="flex gap-2">
+                        <a href="/admin/appeal-detail?id=${appeal.id}" class="text-primary hover:underline text-sm">详情</a>
+                        ${appeal.status === 1 ? `<button class="text-green-600 hover:underline text-sm" data-action="handle" data-id="${appeal.id}">处理</button>` : ""}
+                      </div>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
         `;
 
         const statusParam = status ? `&status=${status}` : "";
@@ -171,32 +179,32 @@ import { Card, CardContent } from "@/components/ui/card";
     background: white;
     padding: 0.25rem;
     border-radius: 0.5rem;
-    border: 1px solid var(--border);
+    border: 1px solid var(--admin-border);
   }
 
   .filter-tab {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--admin-text-muted);
     text-decoration: none;
     border-radius: 0.375rem;
     transition: all 0.2s;
   }
 
   .filter-tab:hover {
-    color: var(--text);
-    background: var(--bg);
+    color: var(--admin-text);
+    background: var(--admin-bg);
   }
 
   .filter-tab.active {
-    background: var(--primary);
+    background: var(--admin-primary);
     color: white;
   }
 
   .loading, .empty-state {
     text-align: center;
     padding: 3rem;
-    color: var(--text-muted);
+    color: var(--admin-text-muted);
   }
 
   .error-message {
@@ -208,82 +216,27 @@ import { Card, CardContent } from "@/components/ui/card";
     margin: 1rem;
   }
 
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .data-table th,
-  .data-table td {
-    padding: 0.75rem 1rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .data-table th {
-    background: #fafafa;
-    font-weight: 500;
-    font-size: 0.875rem;
-    color: var(--text-muted);
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 0.2rem 0.5rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-  }
-
-  .badge-outline {
-    display: inline-block;
-    padding: 0.2rem 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-  }
-
-  .action-buttons {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .action-link {
-    padding: 0.25rem 0.75rem;
-    font-size: 0.875rem;
-    color: var(--primary);
-    text-decoration: none;
-    background: none;
-    border: none;
-    cursor: pointer;
-    border-radius: 0.375rem;
-  }
-
-  .action-link:hover {
-    background: rgba(233, 69, 96, 0.1);
-  }
-
   .pagination {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--admin-border);
   }
 
   .page-btn {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
-    color: var(--text);
+    color: var(--admin-text);
     text-decoration: none;
-    border: 1px solid var(--border);
+    border: 1px solid var(--admin-border);
     border-radius: 0.375rem;
   }
 
   .page-btn:hover:not(.disabled) {
-    border-color: var(--primary);
-    color: var(--primary);
+    border-color: var(--admin-primary);
+    color: var(--admin-primary);
   }
 
   .page-btn.disabled {
@@ -293,6 +246,6 @@ import { Card, CardContent } from "@/components/ui/card";
 
   .page-info {
     font-size: 0.875rem;
-    color: var(--text-muted);
+    color: var(--admin-text-muted);
   }
 </style>

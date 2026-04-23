@@ -23,8 +23,7 @@ npm run build
 
 | 变量 | 说明 |
 |------|------|
-| `API_BASE_URL` | API 基础地址 |
-| `API_TOKEN` | API 认证令牌 |
+| `PUBLIC_API_URL` | API 基础地址（生产环境用） |
 
 ## 项目结构
 
