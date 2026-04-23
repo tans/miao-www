@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 ---
 
 <AdminLayout title="接口调试" activeMenu="api_debug">
-  <div class="api-debug-container">
+  <div class="max-w-[1400px]">
     <div class="flex justify-between items-center mb-4">
       <h4 class="mb-0 flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -28,8 +29,8 @@ import { Label } from "@/components/ui/label";
     </div>
 
     <!-- Simulate User Panel -->
-    <Card class="mb-4 border-l-4 border-l-destructive">
-      <CardHeader class="bg-destructive text-destructive-foreground py-2">
+    <Card class="mb-4 border-l-4 border-l-red-600">
+      <CardHeader class="bg-red-600 text-white py-2">
         <CardTitle class="text-sm flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
@@ -259,7 +260,7 @@ import { Label } from "@/components/ui/label";
     tags.forEach((tag: any) => {
       const endpoints = tagPaths[tag.name] || [];
       if (endpoints.length === 0) return;
-      html += `<div class="tag-section mb-8" data-tag="${tag.name}">
+      html += `<div class="mb-8" data-tag="${tag.name}">
         <h5 class="text-base font-semibold mb-3 pb-2 border-b border-primary text-primary">${tag.name} <span class="text-xs bg-muted px-2 py-0.5 rounded">${endpoints.length}</span></h5>`;
       endpoints.forEach((ep: any) => {
         html += renderEndpoint(ep);
@@ -269,7 +270,7 @@ import { Label } from "@/components/ui/label";
 
     const otherEndpoints = tagPaths['其他'] || [];
     if (otherEndpoints.length > 0) {
-      html += `<div class="tag-section mb-8" data-tag="其他">
+      html += `<div class="mb-8" data-tag="其他">
         <h5 class="text-base font-semibold mb-3 pb-2 border-b border-muted-foreground/20 text-muted-foreground">其他 <span class="text-xs bg-muted px-2 py-0.5 rounded">${otherEndpoints.length}</span></h5>`;
       otherEndpoints.forEach((ep: any) => {
         html += renderEndpoint(ep);
@@ -282,7 +283,7 @@ import { Label } from "@/components/ui/label";
     container.querySelectorAll('.endpoint-header').forEach((header) => {
       header.addEventListener('click', () => {
         const details = header.nextElementSibling as HTMLElement;
-        details.classList.toggle('active');
+        details.classList.toggle('hidden');
       });
     });
 
@@ -300,13 +301,21 @@ import { Label } from "@/components/ui/label";
     const hasReqBody = ep.requestBody;
     const params = ep.parameters || [];
 
+    const methodColors: Record<string, string> = {
+      get: 'bg-blue-600',
+      post: 'bg-green-600',
+      put: 'bg-orange-500',
+      delete: 'bg-red-600',
+      patch: 'bg-yellow-500',
+    };
+
     let paramsHtml = '';
     if (params.length > 0) {
       paramsHtml = '<div class="mb-3"><strong class="text-sm">Query/Path 参数:</strong>';
       params.forEach((p: any) => {
-        const required = p.required ? '<span class="text-destructive">*</span>' : '';
+        const required = p.required ? '<span class="text-red-600">*</span>' : '';
         const place = p.in === 'path' ? '路径参数' : '查询参数';
-        paramsHtml += `<div class="param-row my-2">
+        paramsHtml += `<div class="mb-3">
           <label class="text-sm font-medium">${p.name}${required} <small class="text-muted-foreground">(${place})</small></label>
           <input type="text" class="flex h-8 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm mt-1" data-param="${p.name}" data-in="${p.in}" placeholder="${p.schema ? (p.schema.default || '') : ''}">
         </div>`;
@@ -319,7 +328,7 @@ import { Label } from "@/components/ui/label";
       const schema = hasReqBody.content ? (hasReqBody.content['application/json'] ? hasReqBody.content['application/json'].schema || {} : {}) : {};
       requestBodyHtml = `<div class="mb-3">
         <strong class="text-sm">Request Body:</strong>
-        <textarea class="form-control form-control-sm request-body mt-2 font-mono text-xs" data-body placeholder='${JSON.stringify(generateExample(schema), null, 2)}'></textarea>
+        <textarea class="font-mono text-xs w-full min-h-[150px] rounded-lg border border-input bg-transparent px-3 py-2 mt-2" data-body placeholder='${JSON.stringify(generateExample(schema), null, 2)}'></textarea>
       </div>`;
     }
 
@@ -331,12 +340,12 @@ import { Label } from "@/components/ui/label";
 
     return `<div class="endpoint-card mb-3 border-l-4 border-l-primary bg-card rounded-lg" data-path="${ep.path}" data-method="${ep.method}">
       <div class="endpoint-header cursor-pointer p-3 bg-muted/50 rounded-lg flex items-center gap-3 hover:bg-muted">
-        <span class="method-badge method-${ep.method} font-bold px-2 py-0.5 rounded text-white text-xs">${ep.method.toUpperCase()}</span>
+        <span class="${methodColors[ep.method] || 'bg-gray-600'} font-bold px-2 py-0.5 rounded text-white text-xs">${ep.method.toUpperCase()}</span>
         <code class="flex-1 text-sm">${ep.path}</code>
         ${authBadge}
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-muted-foreground"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
-      <div class="endpoint-details p-3 hidden">
+      <div class="p-3 hidden">
         <div class="mb-3 text-sm"><strong>说明:</strong> ${ep.summary || ''} ${ep.description || ''}</div>
         <div class="bg-muted/30 rounded-lg p-3">
           <div class="flex gap-2 mb-3 items-center">
@@ -346,15 +355,15 @@ import { Label } from "@/components/ui/label";
           ${paramsHtml}
           ${requestBodyHtml}
           <div class="flex gap-2">
-            <button class="send-btn inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90" onclick="sendRequest('${ep.method}', '${ep.path}', '${epId}')">
+            <button class="min-w-[100px] inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90" onclick="sendRequest('${ep.method}', '${ep.path}', '${epId}')">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
               发送
             </button>
-            <button class="btn-outline inline-flex items-center justify-center rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-muted" onclick="clearResponse('${epId}')">清空</button>
+            <button class="inline-flex items-center justify-center rounded-lg border border-input bg-background px-3 py-2 text-sm hover:bg-muted" onclick="clearResponse('${epId}')">清空</button>
           </div>
         </div>
         <div class="mt-3"><strong>Response:</strong>
-          <div class="response-area mt-2 bg-zinc-900 text-zinc-200 p-3 rounded-lg max-h-96 overflow-auto font-mono text-xs whitespace-pre-wrap" id="response-${epId}">点击发送查看响应...</div>
+          <div class="mt-2 bg-zinc-900 text-zinc-200 p-3 rounded-lg max-h-96 overflow-auto font-mono text-xs whitespace-pre-wrap" id="response-${epId}">点击发送查看响应...</div>
         </div>
       </div>
     </div>`;
@@ -377,18 +386,18 @@ import { Label } from "@/components/ui/label";
   async function sendRequest(method: string, path: string, epId: string) {
     let token = (document.getElementById('token-' + epId) as HTMLInputElement).value;
     const responseEl = document.getElementById('response-' + epId)!;
-    const btn = responseEl.closest('.endpoint-card')!.querySelector('.send-btn') as HTMLButtonElement;
+    const btn = responseEl.closest('.endpoint-card')!.querySelector('button') as HTMLButtonElement;
 
     if (!token && simUserToken) {
       token = simUserToken;
     }
 
     if (!token) {
-      responseEl.innerHTML = '<span style="color:#dc3545;">请先输入认证 Token 或选择模拟用户</span>';
+      responseEl.innerHTML = '<span class="text-red-600">请先输入认证 Token 或选择模拟用户</span>';
       return;
     }
 
-    btn.classList.add('loading');
+    btn.classList.add('opacity-60', 'pointer-events-none');
     btn.disabled = true;
     responseEl.textContent = '发送中...';
 
@@ -412,8 +421,8 @@ import { Label } from "@/components/ui/label";
         try {
           Object.assign(bodyObj, JSON.parse(el.value));
         } catch (e: any) {
-          responseEl.innerHTML = '<span style="color:#dc3545;">JSON 解析错误: ' + e.message + '</span>';
-          btn.classList.remove('loading');
+          responseEl.innerHTML = '<span class="text-red-600">JSON 解析错误: ' + e.message + '</span>';
+          btn.classList.remove('opacity-60', 'pointer-events-none');
           btn.disabled = false;
           return;
         }
@@ -438,12 +447,12 @@ import { Label } from "@/components/ui/label";
       const data = await res.json();
       const jsonStr = JSON.stringify(data, null, 2);
 
-      responseEl.innerHTML = `<span style="color:#6f42c1;">[${res.status}] ${res.statusText} (${latency}ms)</span>\n\n${jsonStr}`;
+      responseEl.innerHTML = `<span class="text-purple-600">[${res.status}] ${res.statusText} (${latency}ms)</span>\n\n${jsonStr}`;
     } catch (e: any) {
-      responseEl.innerHTML = '<span style="color:#dc3545;">请求失败: ' + e.message + '</span>';
+      responseEl.innerHTML = '<span class="text-red-600">请求失败: ' + e.message + '</span>';
     }
 
-    btn.classList.remove('loading');
+    btn.classList.remove('opacity-60', 'pointer-events-none');
     btn.disabled = false;
   }
 
@@ -453,11 +462,11 @@ import { Label } from "@/components/ui/label";
   }
 
   function expandAll() {
-    document.querySelectorAll('.endpoint-details').forEach(el => el.classList.add('active'));
+    document.querySelectorAll('.endpoint-card > div:last-child').forEach(el => el.classList.remove('hidden'));
   }
 
   function collapseAll() {
-    document.querySelectorAll('.endpoint-details').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.endpoint-card > div:last-child').forEach(el => el.classList.add('hidden'));
   }
 
   function filterAPI() {
@@ -468,12 +477,12 @@ import { Label } from "@/components/ui/label";
       const path = (card as HTMLElement).dataset.path?.toLowerCase() || '';
       const method = (card as HTMLElement).dataset.method?.toLowerCase() || '';
       const matchesKeyword = path.includes(keyword) || method.includes(keyword);
-      const matchesTag = !tag || (card.closest('.tag-section') as HTMLElement)?.dataset.tag === tag;
+      const matchesTag = !tag || (card.closest('[data-tag]') as HTMLElement)?.dataset.tag === tag;
 
       (card as HTMLElement).style.display = matchesKeyword && matchesTag ? '' : 'none';
     });
 
-    document.querySelectorAll('.tag-section').forEach(section => {
+    document.querySelectorAll('[data-tag]').forEach(section => {
       const visibleCards = section.querySelectorAll('.endpoint-card[style=""], .endpoint-card:not([style])');
       (section as HTMLElement).style.display = visibleCards.length > 0 ? '' : 'none';
     });
@@ -491,147 +500,3 @@ import { Label } from "@/components/ui/label";
     loadAPI();
   }
 </script>
-
-<style>
-  .api-debug-container {
-    max-width: 1400px;
-  }
-
-  .endpoint-card {
-    border-left-width: 4px;
-  }
-
-  .endpoint-header:hover {
-    background: var(--muted);
-  }
-
-  .method-badge {
-    font-weight: 700;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    color: white;
-  }
-
-  .method-post { background: #28a745; }
-  .method-get { background: #007bff; }
-  .method-put { background: #fd7e14; }
-  .method-delete { background: #dc3545; }
-
-  .endpoint-details.active {
-    display: block;
-  }
-
-  .param-row {
-    margin-bottom: 0.75rem;
-  }
-
-  .param-label {
-    font-weight: 500;
-    color: #495057;
-  }
-
-  .param-required {
-    color: #dc3545;
-    margin-left: 2px;
-  }
-
-  .request-body {
-    font-family: 'Courier New', monospace;
-    min-height: 150px;
-  }
-
-  .response-area {
-    background: #1e1e1e;
-    color: #d4d4d4;
-    padding: 1rem;
-    border-radius: 8px;
-    max-height: 400px;
-    overflow: auto;
-    font-family: 'Courier New', monospace;
-    white-space: pre-wrap;
-  }
-
-  .send-btn {
-    min-width: 100px;
-  }
-
-  .tag-section {
-    margin-bottom: 2rem;
-  }
-
-  .tag-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--color-primary);
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--color-primary);
-  }
-
-  .loading {
-    opacity: 0.6;
-    pointer-events: none;
-  }
-
-  .sim-user-panel {
-    border-left: 4px solid #dc3545;
-  }
-
-  .sim-user-panel .card-header {
-    background: #dc3545;
-    color: white;
-  }
-
-  .sim-user-token {
-    font-family: monospace;
-    font-size: 0.85rem;
-    word-break: break-all;
-    background: #f8f9fa;
-    padding: 0.5rem;
-    border-radius: 4px;
-  }
-
-  .border-l-4 {
-    border-left-width: 4px;
-  }
-
-  .border-l-destructive {
-    border-left-color: #dc3545;
-  }
-
-  .border-l-primary {
-    border-left-color: var(--primary);
-  }
-
-  .text-destructive {
-    color: #dc3545;
-  }
-
-  .bg-destructive {
-    background-color: #dc3545;
-  }
-
-  .text-destructive-foreground {
-    color: white;
-  }
-
-  .bg-zinc-900 {
-    background-color: #18181b;
-  }
-
-  .text-zinc-200 {
-    color: #e4e4e7;
-  }
-
-  .font-mono {
-    font-family: ui-monospace, monospace;
-  }
-
-  .max-h-96 {
-    max-height: 24rem;
-  }
-
-  .whitespace-pre-wrap {
-    white-space: pre-wrap;
-  }
-</style>
