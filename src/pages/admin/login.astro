@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 ---
 
 <!doctype html>
@@ -19,11 +20,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
     />
   </head>
   <body>
-    <div class="login-page">
-      <div class="login-container">
-        <Card class="login-card">
-          <CardHeader class="login-header">
-            <div class="logo">
+    <div class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-red-50 via-pink-50 to-fuchsia-100">
+      <div class="w-full max-w-md">
+        <Card class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.1)] overflow-hidden">
+          <CardHeader class="text-center pb-6 pt-8 px-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl mb-4 text-white">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="32"
@@ -40,13 +41,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
                 <polyline points="2 12 12 17 22 12"></polyline>
               </svg>
             </div>
-            <CardTitle>创意喵管理后台</CardTitle>
+            <CardTitle class="text-xl font-semibold text-foreground mb-1">创意喵管理后台</CardTitle>
             <CardDescription>请登录以继续</CardDescription>
           </CardHeader>
-          <CardContent>
-            <form id="login-form" class="login-form">
-              <div class="form-group">
-                <Label htmlFor="username">用户名</Label>
+          <CardContent class="px-6 pb-8">
+            <form id="login-form" class="flex flex-col gap-4">
+              <div class="flex flex-col gap-2">
+                <Label htmlFor="username" class="text-sm font-medium text-foreground">用户名</Label>
                 <Input
                   type="text"
                   id="username"
@@ -56,8 +57,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
                   autoComplete="username"
                 />
               </div>
-              <div class="form-group">
-                <Label htmlFor="password">密码</Label>
+              <div class="flex flex-col gap-2">
+                <Label htmlFor="password" class="text-sm font-medium text-foreground">密码</Label>
                 <Input
                   type="password"
                   id="password"
@@ -67,8 +68,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
                   autoComplete="current-password"
                 />
               </div>
-              <div id="error-message" class="error-message" style="display: none;"></div>
-              <Button type="submit" class="login-btn" id="submit-btn">
+              <div id="error-message" class="hidden">
+                <Alert variant="destructive">
+                  <AlertDescription id="error-text"></AlertDescription>
+                </Alert>
+              </div>
+              <Button type="submit" class="w-full py-3 bg-gradient-to-br from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0" id="submit-btn">
                 登录
               </Button>
             </form>
@@ -83,11 +88,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
       const form = document.getElementById("login-form") as HTMLFormElement;
       const errorEl = document.getElementById("error-message") as HTMLDivElement;
+      const errorText = document.getElementById("error-text") as HTMLDivElement;
       const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
 
       form?.addEventListener("submit", async (e) => {
         e.preventDefault();
-        errorEl.style.display = "none";
+        errorEl.classList.add("hidden");
         submitBtn.disabled = true;
         submitBtn.textContent = "登录中...";
 
@@ -104,165 +110,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
             toast.success("登录成功");
             window.location.href = "/admin";
           } else {
-            errorEl.textContent = res.message || "登录失败";
-            errorEl.style.display = "block";
+            errorText.textContent = res.message || "登录失败";
+            errorEl.classList.remove("hidden");
             submitBtn.disabled = false;
             submitBtn.textContent = "登录";
           }
         } catch (err) {
-          errorEl.textContent = "网络错误，请稍后重试";
-          errorEl.style.display = "block";
+          errorText.textContent = "网络错误，请稍后重试";
+          errorEl.classList.remove("hidden");
           submitBtn.disabled = false;
           submitBtn.textContent = "登录";
         }
       });
     </script>
-
-    <style>
-      :root {
-        --admin-primary: oklch(0.65 0.2 15);
-        --admin-primary-hover: oklch(0.55 0.18 15);
-        --admin-bg: oklch(0.97 0 0);
-        --admin-text: oklch(0.145 0 0);
-        --admin-text-muted: oklch(0.556 0 0);
-        --admin-border: oklch(0.922 0 0);
-      }
-
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family: var(--font-sans);
-        background: var(--admin-bg);
-        color: var(--admin-text);
-        min-height: 100vh;
-      }
-
-      .login-page {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-        background: linear-gradient(135deg, #fef2f2 0%, #fdf4f4 50%, #fce7f3 100%);
-      }
-
-      .login-container {
-        width: 100%;
-        max-width: 400px;
-      }
-
-      .login-card {
-        background: white;
-        border-radius: 1rem;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-      }
-
-      .login-header {
-        text-align: center;
-        padding: 2rem 1.5rem 1.5rem;
-        border-bottom: none;
-      }
-
-      .logo {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 64px;
-        height: 64px;
-        background: linear-gradient(135deg, var(--admin-primary) 0%, #ff6b81 100%);
-        border-radius: 1rem;
-        margin-bottom: 1rem;
-        color: white;
-      }
-
-      :global(.card-title) {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--admin-text);
-        margin-bottom: 0.25rem;
-      }
-
-      :global(.card-description) {
-        font-size: 0.875rem;
-        color: var(--admin-text-muted);
-      }
-
-      :global(.login-card .card-content) {
-        padding: 1.5rem;
-      }
-
-      .login-form {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-
-      :global(.form-group label) {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: var(--admin-text);
-      }
-
-      :global(.form-group input) {
-        padding: 0.625rem 0.875rem;
-        border: 1px solid var(--admin-border);
-        border-radius: 0.5rem;
-        font-size: 0.9375rem;
-        transition: border-color 0.2s, box-shadow 0.2s;
-      }
-
-      :global(.form-group input:focus) {
-        outline: none;
-        border-color: var(--admin-primary);
-        box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
-      }
-
-      .error-message {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        color: #dc2626;
-        padding: 0.75rem;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-      }
-
-      .login-btn {
-        width: 100%;
-        padding: 0.75rem;
-        background: linear-gradient(135deg, var(--admin-primary) 0%, #ff6b81 100%);
-        color: white;
-        border: none;
-        border-radius: 0.5rem;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
-      }
-
-      .login-btn:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
-      }
-
-      .login-btn:active:not(:disabled) {
-        transform: translateY(0);
-      }
-
-      .login-btn:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-      }
-    </style>
   </body>
 </html>
