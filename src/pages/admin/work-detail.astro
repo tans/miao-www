@@ -5,37 +5,45 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 ---
 
 <AdminLayout title="作品详情" activeMenu="works">
-  <div class="work-detail-page">
-    <div class="page-header">
-      <a href="/admin/works" class="back-link">← 返回列表</a>
-      <h1 class="page-title">作品详情</h1>
+  <div class="max-w-[1200px]">
+    <div class="mb-6">
+      <a href="/admin/works" class="text-muted-foreground hover:text-primary text-sm mb-2 inline-block">← 返回列表</a>
+      <h1 class="text-2xl font-semibold">作品详情</h1>
     </div>
 
     <div id="work-container">
-      <div class="loading">加载中...</div>
-    <div id="edit-modal" class="modal hidden" aria-hidden="true">
-      <div class="modal-backdrop"></div>
-      <div class="modal-content" role="dialog" aria-modal="true">
-        <div class="modal-header">
-          <h2 id="edit-modal-title" class="text-lg font-semibold">编辑作品</h2>
-          <button class="modal-close" id="modal-close" aria-label="关闭">×</button>
-        </div>
+      <div class="text-center py-12 text-muted-foreground">加载中...</div>
+    </div>
+
+    <Dialog open={false} id="edit-modal">
+      <DialogContent class="max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle id="edit-modal-title">编辑作品</DialogTitle>
+        </DialogHeader>
         <form id="edit-work-form" class="space-y-4">
           <input type="hidden" id="edit-work-id" name="id" />
           <div class="space-y-2">
             <Label for="edit-work-content">作品内容</Label>
             <Textarea id="edit-work-content" name="content" rows="5" placeholder="请输入内容"></Textarea>
           </div>
-          <div class="flex justify-end gap-3 pt-2">
+          <DialogFooter>
             <Button type="button" variant="outline" id="cancel-btn">取消</Button>
             <Button type="submit">保存</Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   </div>
 </AdminLayout>
 
@@ -47,10 +55,14 @@ import { Textarea } from "@/components/ui/textarea";
   const workId = urlParams.get("id");
 
   if (!workId) {
-    document.getElementById("work-container")!.innerHTML = `<div class="error-message">缺少作品ID参数</div>`;
+    document.getElementById("work-container")!.innerHTML = `
+      <Alert variant="destructive">
+        <AlertDescription>缺少作品ID参数</AlertDescription>
+      </Alert>
+    `;
   }
 
-  const statusMap: Record<number, { label: string; variant: string }> = {
+  const statusMap: Record<number, { label: string; variant: "default" | "secondary" | "destructive" }> = {
     1: { label: "待审核", variant: "secondary" },
     2: { label: "已通过", variant: "default" },
     3: { label: "未通过", variant: "destructive" },
@@ -65,8 +77,8 @@ import { Textarea } from "@/components/ui/textarea";
       if (res.code === 0) {
         const work = res.data.work;
         container.innerHTML = `
-          <div class="detail-grid">
-            <Card class="col-span-2">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card class="lg:col-span-2">
               <CardHeader>
                 <CardTitle>作品信息</CardTitle>
               </CardHeader>
@@ -106,7 +118,7 @@ import { Textarea } from "@/components/ui/textarea";
               </CardContent>
             </Card>
 
-            <Card class="col-span-2">
+            <Card class="lg:col-span-2">
               <CardHeader>
                 <CardTitle>作品内容</CardTitle>
               </CardHeader>
@@ -116,16 +128,14 @@ import { Textarea } from "@/components/ui/textarea";
             </Card>
 
             ${work.images && work.images.length > 0 ? `
-            <Card class="col-span-2">
+            <Card class="lg:col-span-2">
               <CardHeader>
                 <CardTitle>图片 (${work.images.length})</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="images-grid">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   ${work.images.map((img: string) => `
-                    <div class="image-item">
-                      <img src="${img}" alt="作品图片" class="w-full h-40 object-cover rounded-lg border" />
-                    </div>
+                    <img src="${img}" alt="作品图片" class="w-full h-40 object-cover rounded-lg border" />
                   `).join("")}
                 </div>
               </CardContent>
@@ -133,31 +143,29 @@ import { Textarea } from "@/components/ui/textarea";
             ` : ""}
 
             ${work.videos && work.videos.length > 0 ? `
-            <Card class="col-span-2">
+            <Card class="lg:col-span-2">
               <CardHeader>
                 <CardTitle>视频 (${work.videos.length})</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div class="videos-list space-y-4">
-                  ${work.videos.map((video: string) => `
-                    <video controls src="${video}" class="w-full max-h-96 rounded-lg border"></video>
-                  `).join("")}
-                </div>
+              <CardContent class="space-y-4">
+                ${work.videos.map((video: string) => `
+                  <video controls src="${video}" class="w-full max-h-96 rounded-lg border"></video>
+                `).join("")}
               </CardContent>
             </Card>
             ` : ""}
 
-            <Card>
+            <Card class="lg:col-span-2">
               <CardHeader>
                 <CardTitle>操作</CardTitle>
               </CardHeader>
-              <CardContent class="flex gap-3 flex-wrap">
+              <CardContent class="flex flex-wrap gap-3">
                 ${work.status === 1 ? `
-                <Button size="sm" class="bg-green-600 hover:bg-green-700" id="approve-btn">通过</Button>
-                <Button size="sm" variant="destructive" id="reject-btn">拒绝</Button>
+                  <Button id="approve-btn" size="sm" class="bg-green-600 hover:bg-green-700">通过</Button>
+                  <Button id="reject-btn" size="sm" variant="destructive">拒绝</Button>
                 ` : ""}
-                <Button size="sm" variant="outline" id="edit-btn">编辑</Button>
-                <Button size="sm" variant="outline" id="delete-btn">删除</Button>
+                <Button id="edit-btn" size="sm">编辑</Button>
+                <Button id="delete-btn" size="sm" variant="outline">删除</Button>
               </CardContent>
             </Card>
           </div>
@@ -209,26 +217,22 @@ import { Textarea } from "@/components/ui/textarea";
         });
 
         // Edit modal handling
-        const modal = document.getElementById("edit-modal")!;
+        const modal = document.getElementById("edit-modal") as any;
         const editForm = document.getElementById("edit-work-form") as HTMLFormElement;
 
         function openEditModal(work: any) {
           (document.getElementById("edit-work-id") as HTMLInputElement).value = work.id;
           (document.getElementById("edit-work-content") as HTMLTextAreaElement).value = work.content || "";
-          modal.classList.remove("hidden");
-          modal.setAttribute("aria-hidden", "false");
+          if (modal) modal.open = true;
         }
 
         function closeEditModal() {
-          modal.classList.add("hidden");
-          modal.setAttribute("aria-hidden", "true");
+          if (modal) modal.open = false;
           editForm.reset();
         }
 
         document.getElementById("edit-btn")?.addEventListener("click", () => openEditModal(work));
-        document.getElementById("modal-close")?.addEventListener("click", closeEditModal);
         document.getElementById("cancel-btn")?.addEventListener("click", closeEditModal);
-        document.querySelector(".modal-backdrop")?.addEventListener("click", closeEditModal);
 
         editForm.addEventListener("submit", async (e) => {
           e.preventDefault();
@@ -248,10 +252,18 @@ import { Textarea } from "@/components/ui/textarea";
           }
         });
       } else {
-        container.innerHTML = `<div class="error-message">${res.message}</div>`;
+        container.innerHTML = `
+          <Alert variant="destructive">
+            <AlertDescription>${res.message}</AlertDescription>
+          </Alert>
+        `;
       }
     } catch (e) {
-      container.innerHTML = `<div class="error-message">加载失败</div>`;
+      container.innerHTML = `
+        <Alert variant="destructive">
+          <AlertDescription>加载失败</AlertDescription>
+        </Alert>
+      `;
     }
   }
 
@@ -262,197 +274,3 @@ import { Textarea } from "@/components/ui/textarea";
     loadWork();
   }
 </script>
-
-<style>
-  .work-detail-page {
-    max-width: 1200px;
-  }
-
-  .page-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .back-link {
-    color: var(--admin-text-muted);
-    text-decoration: none;
-    font-size: 0.875rem;
-    margin-bottom: 0.5rem;
-    display: inline-block;
-  }
-
-  .back-link:hover {
-    color: var(--admin-primary);
-  }
-
-  .page-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-  }
-
-  .loading {
-    text-align: center;
-    padding: 3rem;
-    color: var(--admin-text-muted);
-  }
-
-  .error-message {
-    padding: 1rem;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #dc2626;
-    border-radius: 0.5rem;
-  }
-
-  .detail-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .col-span-2 {
-    grid-column: span 2;
-  }
-
-  @media (max-width: 768px) {
-    .col-span-2 {
-      grid-column: span 1;
-    }
-  }
-
-  .space-y-3 > * + * {
-    margin-top: 0.75rem;
-  }
-
-  .space-y-4 > * + * {
-    margin-top: 1rem;
-  }
-
-  .py-2 {
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-  }
-
-  .border-b {
-    border-bottom: 1px solid var(--admin-border);
-  }
-
-  .flex {
-    display: flex;
-  }
-
-  .justify-between {
-    justify-content: space-between;
-  }
-
-  .items-center {
-    align-items: center;
-  }
-
-  .gap-3 {
-    gap: 0.75rem;
-  }
-
-  .flex-wrap {
-    flex-wrap: wrap;
-  }
-
-  .whitespace-pre-wrap {
-    white-space: pre-wrap;
-  }
-
-  .images-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 1rem;
-  }
-
-  .w-full {
-    width: 100%;
-  }
-
-  .h-40 {
-    height: 10rem;
-  }
-
-  .object-cover {
-    object-fit: cover;
-  }
-
-  .rounded-lg {
-    border-radius: 0.5rem;
-  }
-
-  .max-h-96 {
-    max-height: 24rem;
-  }
-
-  /* Modal styles */
-  .modal {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .modal.hidden {
-    display: none;
-  }
-
-  .modal-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-  }
-
-  .modal-content {
-    position: relative;
-    background: white;
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-    width: 100%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  }
-
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
-
-  .modal-close {
-    width: 2rem;
-    height: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    border-radius: 0.375rem;
-    color: var(--admin-text-muted);
-  }
-
-  .modal-close:hover {
-    background: var(--admin-bg);
-    color: var(--admin-text);
-  }
-
-  .space-y-2 > * + * {
-    margin-top: 0.5rem;
-  }
-
-  .justify-end {
-    justify-content: flex-end;
-  }
-
-  .pt-2 {
-    padding-top: 0.5rem;
-  }
-</style>
