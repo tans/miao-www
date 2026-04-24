@@ -173,7 +173,7 @@ export function Tasks() {
                       <TableCell className="font-mono text-xs">{task.id}</TableCell>
                       <TableCell className="font-medium max-w-64 truncate">{task.title}</TableCell>
                       <TableCell className="font-mono text-xs">{task.business_id}</TableCell>
-                      <TableCell className="font-mono">¥{task.unit_price.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono">¥{(task.unit_price ?? 0).toFixed(2)}</TableCell>
                       <TableCell>
                         <span className="font-mono">{task.total_budget}</span> /{" "}
                         <span className="text-muted-foreground">{task.remaining_count}</span>

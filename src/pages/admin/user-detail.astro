@@ -11,7 +11,7 @@ import { UserDetail } from "@/components/admin/UserDetail";
     </div>
 
     <div id="user-container">
-      <UserDetail client:load userId={new URLSearchParams(Astro.url.search).get("id") || ""} />
+      <UserDetail client:load />
     </div>
   </div>
 </AdminLayout>

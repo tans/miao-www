@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { ChevronDownIcon } from "lucide-react";
 
 interface Column {
   name: string;
@@ -29,9 +30,10 @@ export function Database() {
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
   const [queryError, setQueryError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [schemaTable, setSchemaTable] = useState("");
+  const [tableSearchOpen, setTableSearchOpen] = useState(false);
+  const [tableSearch, setTableSearch] = useState("");
+  const [selectedTable, setSelectedTable] = useState("");
   const [sqlInput, setSqlInput] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
@@ -47,7 +49,12 @@ export function Database() {
     try {
       const res = await api.getTables();
       if (res.code === 0) {
-        setTables(res.data.tables || []);
+        const tables = res.data.tables || [];
+        setTables(tables);
+        // Auto-select tasks table if exists
+        if (tables.includes("tasks")) {
+          loadTableData("tasks");
+        }
       } else {
         toast.error(res.message);
       }
@@ -58,21 +65,39 @@ export function Database() {
     }
   }
 
-  async function loadSchema(tableName: string) {
-    setSchemaTable(tableName);
+  async function loadTableData(tableName: string) {
+    setSelectedTable(tableName);
     setSchema(null);
     setQueryResult(null);
     setQueryError("");
+    setSqlInput(`SELECT * FROM \`${tableName}\` LIMIT 100`);
 
     try {
-      const res = await api.getTableSchema(tableName);
-      if (res.code === 0) {
-        setSchema(res.data.schema);
+      const [schemaRes, dataRes] = await Promise.all([
+        api.getTableSchema(tableName),
+        api.executeQuery(`SELECT * FROM \`${tableName}\` LIMIT 100`)
+      ]);
+
+      if (schemaRes.code === 0) {
+        setSchema(schemaRes.data.schema);
+      }
+      if (dataRes.code === 0) {
+        const rawResult = dataRes.data.result;
+        // Handle both array result or object with rows property
+        const rows = Array.isArray(rawResult) ? rawResult : (Array.isArray(rawResult?.rows) ? rawResult.rows : []);
+        if (rows.length > 0) {
+          setQueryResult({
+            columns: Object.keys(rows[0]),
+            rows,
+          });
+        } else {
+          setQueryError("数据为空或格式未知: " + JSON.stringify(rawResult)?.slice(0, 100));
+        }
       } else {
-        toast.error(res.message);
+        setQueryError(dataRes.message);
       }
     } catch (e) {
-      toast.error("加载失败");
+      setQueryError("加载失败");
     }
   }
 
@@ -91,7 +116,7 @@ export function Database() {
     setSchema(null);
     setQueryResult(null);
     setQueryError("");
-    setSchemaTable("");
+    setSelectedTable("");
 
     try {
       const res = await api.executeQuery(sqlInput);
@@ -117,7 +142,8 @@ export function Database() {
     setQueryResult(null);
     setQueryError("");
     setSchema(null);
-    setSchemaTable("");
+    setSelectedTable("");
+    setSqlInput("");
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -126,107 +152,65 @@ export function Database() {
     }
   }
 
+  function copySchemaToClipboard() {
+    if (!schema || !selectedTable) return;
+    const text = `${selectedTable}\n${schema.columns.map(c => `${c.name}\t${c.type}`).join("\n")}`;
+    navigator.clipboard.writeText(text);
+    toast.success("已复制到剪贴板");
+  }
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>执行 SQL 查询</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="sql-input">SQL 语句</Label>
-              <Textarea
-                id="sql-input"
-                ref={textareaRef}
-                className="font-mono"
-                rows={4}
-                placeholder="SELECT * FROM users LIMIT 10;"
-                value={sqlInput}
-                onChange={(e) => setSqlInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={executeQuery}>执行查询</Button>
-              <Button variant="outline" onClick={clearResults}>清空结果</Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Popover open={tableSearchOpen} onOpenChange={setTableSearchOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-[200px] justify-between">
+              {selectedTable || "选择表..."}
+              <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[200px] p-0">
+            <Command>
+              <CommandInput placeholder="搜索表名..." value={tableSearch} onValueChange={setTableSearch} />
+              <CommandList>
+                <CommandEmpty>未找到表</CommandEmpty>
+                <CommandGroup>
+                  {tables.filter(t => t.toLowerCase().includes(tableSearch.toLowerCase())).map(table => (
+                    <CommandItem key={table} value={table} onSelect={() => {
+                      loadTableData(table);
+                      setTableSearchOpen(false);
+                      setTableSearch("");
+                    }}>
+                      {table}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>数据库表</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">加载中...</div>
-          ) : tables.length === 0 ? (
-            <Alert className="m-4">
-              <AlertDescription>暂无数据表</AlertDescription>
-            </Alert>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4">
-              {tables.map((table) => (
-                <div
-                  key={table}
-                  className="flex flex-col items-center gap-2 p-4 bg-muted/30 border border-border rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="text-muted-foreground"
-                  >
-                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                  </svg>
-                  <span className="font-medium text-sm text-center">{table}</span>
-                  <div className="flex gap-2">
-                    <button
-                      className="text-xs px-2 py-1 bg-background border border-border rounded hover:border-primary hover:text-primary transition-colors"
-                      onClick={() => loadSchema(table)}
-                    >
-                      结构
-                    </button>
-                    <button
-                      className="text-xs px-2 py-1 bg-background border border-border rounded hover:border-primary hover:text-primary transition-colors"
-                      onClick={() => setSqlInput(`SELECT * FROM ${table} LIMIT 50;`)}
-                    >
-                      查询
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <Textarea
+          className="font-mono h-9 min-h-[36px] flex-1"
+          placeholder="SELECT ..."
+          value={sqlInput}
+          onChange={(e) => setSqlInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
 
+        <Button onClick={executeQuery} size="sm">执行</Button>
+        <Button variant="outline" onClick={clearResults} size="sm">清空</Button>
+      </div>
+
+      {/* Results */}
       <Card>
-        <CardHeader>
-          <CardTitle>查询结果</CardTitle>
-        </CardHeader>
         <CardContent className="p-0">
-          {schema ? (
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-medium">{schemaTable} 表结构</h4>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const text = `${schemaTable}\n${schema.columns.map(c => `${c.name}\t${c.type}`).join("\n")}`;
-                    navigator.clipboard.writeText(text);
-                    toast.success("已复制到剪贴板");
-                  }}
-                >
+          {schema && (
+            <div>
+              <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b text-sm font-medium">
+                <span>{selectedTable} - 表结构</span>
+                <Button variant="ghost" size="sm" onClick={copySchemaToClipboard}>
                   复制结构
                 </Button>
               </div>
@@ -253,12 +237,15 @@ export function Database() {
                 </Table>
               </div>
             </div>
-          ) : queryResult ? (
+          )}
+
+          {queryResult && (
             <div>
-              <div className="px-4 py-3 bg-muted/30 border-b text-sm text-muted-foreground">
+              <div className="px-4 py-2 bg-muted/30 border-b text-sm text-muted-foreground">
                 返回 {queryResult.rows.length} 行
+                {queryResult.rows.length >= 100 && " (仅显示前100行)"}
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-h-[500px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -278,18 +265,21 @@ export function Database() {
                   </TableBody>
                 </Table>
               </div>
-              {queryResult.rows.length >= 100 && (
-                <div className="px-4 py-3 bg-muted/30 border-t text-sm text-muted-foreground">
-                  仅显示前 100 行
-                </div>
-              )}
             </div>
-          ) : queryError ? (
+          )}
+
+          {queryError && (
             <Alert variant="destructive" className="m-4">
               <AlertDescription>{queryError}</AlertDescription>
             </Alert>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">请在上方输入 SQL 并执行</div>
+          )}
+
+          {!schema && !queryResult && !queryError && !loading && (
+            <div className="text-center py-8 text-muted-foreground">选择表或输入 SQL 查询</div>
+          )}
+
+          {loading && (
+            <div className="text-center py-8 text-muted-foreground">加载中...</div>
           )}
         </CardContent>
       </Card>
