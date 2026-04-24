@@ -17,11 +17,20 @@ interface Transaction {
   id: number;
   user_id: number;
   type: string;
+  type_str?: string;
   amount: number;
+  raw_amount?: number;
   balance_before: number;
   balance_after: number;
   remark?: string;
+  description?: string;
   created_at: string;
+}
+
+function formatSignedAmount(amount: number) {
+  const value = amount ?? 0;
+  const sign = value >= 0 ? "+" : "-";
+  return `${sign}¥${Math.abs(value).toFixed(2)}`;
 }
 
 export function Finance() {
@@ -151,16 +160,16 @@ export function Finance() {
                     <TableRow key={tx.id}>
                       <TableCell className="font-mono text-xs">{tx.id}</TableCell>
                       <TableCell className="font-mono text-xs">{tx.user_id}</TableCell>
-                      <TableCell>{tx.type}</TableCell>
+                      <TableCell>{tx.type_str || tx.type}</TableCell>
                       <TableCell className="font-mono">
                         <span className={tx.amount >= 0 ? "text-green-600" : "text-red-600"}>
-                          {tx.amount >= 0 ? "+" : ""}¥{(tx.amount ?? 0).toFixed(2)}
+                          {formatSignedAmount(tx.amount)}
                         </span>
                       </TableCell>
                       <TableCell className="font-mono text-muted-foreground text-xs">
                         {(tx.balance_before ?? 0).toFixed(2)} → {(tx.balance_after ?? 0).toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{tx.remark || "-"}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{tx.remark || tx.description || "-"}</TableCell>
                       <TableCell className="text-muted-foreground text-xs">
                         {new Date(tx.created_at).toLocaleString("zh-CN")}
                       </TableCell>

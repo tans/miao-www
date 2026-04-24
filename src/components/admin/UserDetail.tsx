@@ -27,10 +27,18 @@ interface User {
 interface Transaction {
   id: number;
   type: string;
+  type_str?: string;
   amount: number;
+  raw_amount?: number;
   balance_after: number;
   remark?: string;
   created_at: string;
+}
+
+function formatSignedAmount(amount: number) {
+  const value = amount ?? 0;
+  const sign = value >= 0 ? "+" : "-";
+  return `${sign}¥${Math.abs(value).toFixed(2)}`;
 }
 
 const statusMap: Record<number, { label: string; variant: "default" | "destructive" | "secondary" }> = {
@@ -277,9 +285,9 @@ export function UserDetail() {
                 {transactions.map((tx) => (
                   <TableRow key={tx.id}>
                     <TableCell className="font-mono text-xs">{tx.id}</TableCell>
-                    <TableCell>{tx.type}</TableCell>
+                    <TableCell>{tx.type_str || tx.type}</TableCell>
                     <TableCell className={`font-mono ${tx.amount >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {tx.amount >= 0 ? "+" : ""}¥{tx.amount.toFixed(2)}
+                      {formatSignedAmount(tx.amount)}
                     </TableCell>
                     <TableCell className="font-mono">¥{tx.balance_after.toFixed(2)}</TableCell>
                     <TableCell className="text-muted-foreground text-xs">{tx.remark || "-"}</TableCell>
