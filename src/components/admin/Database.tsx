@@ -216,27 +216,42 @@ export function Database() {
         <CardContent className="p-0">
           {schema ? (
             <div className="p-4">
-              <h4 className="font-medium mb-4">{schemaTable} 表结构</h4>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>字段名</TableHead>
-                    <TableHead>类型</TableHead>
-                    <TableHead>可空</TableHead>
-                    <TableHead>默认值</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {schema.columns.map((col) => (
-                    <TableRow key={col.name}>
-                      <TableCell className="font-mono">{col.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{col.type}</TableCell>
-                      <TableCell>{col.nullable ? "是" : "否"}</TableCell>
-                      <TableCell className="text-muted-foreground">{col.default || "-"}</TableCell>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-medium">{schemaTable} 表结构</h4>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const text = `${schemaTable}\n${schema.columns.map(c => `${c.name}\t${c.type}`).join("\n")}`;
+                    navigator.clipboard.writeText(text);
+                    toast.success("已复制到剪贴板");
+                  }}
+                >
+                  复制结构
+                </Button>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>字段名</TableHead>
+                      <TableHead>类型</TableHead>
+                      <TableHead>可空</TableHead>
+                      <TableHead>默认值</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {schema.columns.map((col) => (
+                      <TableRow key={col.name}>
+                        <TableCell className="font-mono">{col.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{col.type}</TableCell>
+                        <TableCell>{col.nullable ? "是" : "否"}</TableCell>
+                        <TableCell className="text-muted-foreground">{col.default || "-"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           ) : queryResult ? (
             <div>
