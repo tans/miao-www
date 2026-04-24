@@ -36,6 +36,14 @@ export function Database() {
   const [sqlInput, setSqlInput] = useState("");
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get("token");
+
+    if (urlToken) {
+      localStorage.setItem("admin_token", urlToken);
+      api.setToken(urlToken);
+    }
+
     const token = localStorage.getItem("admin_token");
     if (!token) {
       window.location.href = "/admin/login";
@@ -79,19 +87,31 @@ export function Database() {
       ]);
 
       if (schemaRes.code === 0) {
-        setSchema(schemaRes.data.schema);
+        // Backend returns { table_name, columns } but frontend expects { columns }
+        setSchema({ columns: schemaRes.data.columns });
       }
       if (dataRes.code === 0) {
-        const rawResult = dataRes.data.result;
-        // Handle both array result or object with rows property
-        const rows = Array.isArray(rawResult) ? rawResult : (Array.isArray(rawResult?.rows) ? rawResult.rows : []);
+        // dataRes.data可能是数组，也可能是{result: [...]}，也可能是{rows: [...]}
+        const rawData = dataRes.data;
+        let rows: any[] = [];
+        if (Array.isArray(rawData)) {
+          rows = rawData;
+        } else if (rawData) {
+          if (Array.isArray(rawData.result)) {
+            rows = rawData.result;
+          } else if (Array.isArray(rawData.rows)) {
+            rows = rawData.rows;
+          } else if (Array.isArray(rawData.data)) {
+            rows = rawData.data;
+          }
+        }
         if (rows.length > 0) {
           setQueryResult({
             columns: Object.keys(rows[0]),
             rows,
           });
         } else {
-          setQueryError("数据为空或格式未知: " + JSON.stringify(rawResult)?.slice(0, 100));
+          setQueryError("数据为空: " + JSON.stringify(rawData)?.slice(0, 100));
         }
       } else {
         setQueryError(dataRes.message);
@@ -108,8 +128,8 @@ export function Database() {
     }
 
     const upperSql = sqlInput.toUpperCase();
-    if (!upperSql.startsWith("SELECT") && !upperSql.startsWith("SHOW") && !upperSql.startsWith("DESCRIBE")) {
-      toast.error("仅允许 SELECT/SHOW/DESCRIBE 查询");
+    if (!upperSql.startsWith("SELECT") && !upperSql.startsWith("SHOW") && !upperSql.startsWith("DESCRIBE") && !upperSql.startsWith("UPDATE") && !upperSql.startsWith("INSERT") && !upperSql.startsWith("DELETE")) {
+      toast.error("仅允许 SELECT/SHOW/DESCRIBE/UPDATE/INSERT/DELETE 操作");
       return;
     }
 
@@ -121,9 +141,21 @@ export function Database() {
     try {
       const res = await api.executeQuery(sqlInput);
       if (res.code === 0) {
-        const rows = res.data.result || [];
+        const rawData = res.data;
+        let rows: any[] = [];
+        if (Array.isArray(rawData)) {
+          rows = rawData;
+        } else if (rawData) {
+          if (Array.isArray(rawData.result)) {
+            rows = rawData.result;
+          } else if (Array.isArray(rawData.rows)) {
+            rows = rawData.rows;
+          } else if (Array.isArray(rawData.data)) {
+            rows = rawData.data;
+          }
+        }
         if (rows.length === 0) {
-          setQueryError("查询成功，但无返回数据");
+          setQueryError("数据为空: " + JSON.stringify(rawData)?.slice(0, 100));
         } else {
           setQueryResult({
             columns: Object.keys(rows[0]),
@@ -155,8 +187,30 @@ export function Database() {
   function copySchemaToClipboard() {
     if (!schema || !selectedTable) return;
     const text = `${selectedTable}\n${schema.columns.map(c => `${c.name}\t${c.type}`).join("\n")}`;
-    navigator.clipboard.writeText(text);
-    toast.success("已复制到剪贴板");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        toast.success("已复制到剪贴板");
+      }).catch((err) => {
+        console.error("clipboard error:", err);
+        toast.error("复制失败，请检查浏览器权限");
+      });
+    } else {
+      // Fallback for older browsers
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand("copy");
+        toast.success("已复制到剪贴板");
+      } catch (err) {
+        console.error("execCommand error:", err);
+        toast.error("复制失败");
+      }
+      document.body.removeChild(textarea);
+    }
   }
 
   return (
@@ -191,6 +245,10 @@ export function Database() {
           </PopoverContent>
         </Popover>
 
+        <Button variant="secondary" size="sm" onClick={copySchemaToClipboard} disabled={!schema}>
+          复制表结构
+        </Button>
+
         <Textarea
           className="font-mono h-9 min-h-[36px] flex-1"
           placeholder="SELECT ..."
@@ -214,23 +272,23 @@ export function Database() {
                   复制结构
                 </Button>
               </div>
-              <div className="overflow-x-auto">
-                <Table>
+              <div className="w-full overflow-x-auto">
+                <Table className="w-full table-fixed">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>字段名</TableHead>
-                      <TableHead>类型</TableHead>
-                      <TableHead>可空</TableHead>
-                      <TableHead>默认值</TableHead>
+                      <TableHead className="whitespace-nowrap">字段名</TableHead>
+                      <TableHead className="whitespace-nowrap">类型</TableHead>
+                      <TableHead className="whitespace-nowrap">可空</TableHead>
+                      <TableHead className="whitespace-nowrap">默认值</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {schema.columns.map((col) => (
                       <TableRow key={col.name}>
-                        <TableCell className="font-mono">{col.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{col.type}</TableCell>
-                        <TableCell>{col.nullable ? "是" : "否"}</TableCell>
-                        <TableCell className="text-muted-foreground">{col.default || "-"}</TableCell>
+                        <TableCell className="font-mono whitespace-nowrap truncate max-w-[150px]">{col.name}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap truncate max-w-[150px]">{col.type}</TableCell>
+                        <TableCell className="whitespace-nowrap">{col.notnull ? "否" : "是"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap truncate max-w-[150px]">{col.default || "-"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -245,12 +303,12 @@ export function Database() {
                 返回 {queryResult.rows.length} 行
                 {queryResult.rows.length >= 100 && " (仅显示前100行)"}
               </div>
-              <div className="overflow-x-auto max-h-[500px]">
-                <Table>
+              <div className="w-full overflow-x-auto max-h-[500px]">
+                <Table className="w-full table-fixed">
                   <TableHeader>
                     <TableRow>
                       {queryResult.columns.map((col) => (
-                        <TableHead key={col}>{col}</TableHead>
+                        <TableHead key={col} className="whitespace-nowrap">{col}</TableHead>
                       ))}
                     </TableRow>
                   </TableHeader>
@@ -258,7 +316,7 @@ export function Database() {
                     {queryResult.rows.map((row, i) => (
                       <TableRow key={i}>
                         {queryResult.columns.map((col) => (
-                          <TableCell key={col}>{row[col] ?? "-"}</TableCell>
+                          <TableCell key={col} className="whitespace-nowrap truncate max-w-[200px]">{row[col] ?? "-"}</TableCell>
                         ))}
                       </TableRow>
                     ))}

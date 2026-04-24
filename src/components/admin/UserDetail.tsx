@@ -20,7 +20,7 @@ interface User {
   status: number;
   created_at: string;
   balance: number;
-  margin_frozen: number;
+  frozen_amount: number;
   credit_score: number;
 }
 
@@ -116,12 +116,16 @@ export function UserDetail() {
 
   async function handleUpdateBalance() {
     const balanceInput = document.getElementById("balance-input") as HTMLInputElement;
-    const balance = parseFloat(balanceInput.value);
+    const change = parseFloat(balanceInput.value);
+    if (isNaN(change) || change === 0) {
+      toast.error("请输入有效的金额");
+      return;
+    }
     try {
-      const res = await api.updateUserBalance(parseInt(userId), balance);
+      const res = await api.updateUserBalance(parseInt(userId), change, "管理员调整");
       if (res.code === 0) {
-        toast.success("余额已更新");
-        loadUser();
+        toast.success(`已添加 ¥${change.toFixed(2)}`);
+        loadUser(userId);
       } else {
         toast.error("更新失败: " + res.message);
       }
@@ -198,7 +202,7 @@ export function UserDetail() {
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-muted-foreground text-sm">冻结金额</span>
-              <span className="font-mono">¥{user.margin_frozen.toFixed(2)}</span>
+              <span className="font-mono">¥{(user.frozen_amount || 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between py-2">
               <span className="text-muted-foreground text-sm">信用评分</span>
@@ -240,9 +244,9 @@ export function UserDetail() {
               <Button size="sm" onClick={handleUpdateStatus}>更新状态</Button>
             </div>
             <div className="flex items-center gap-3">
-              <label className="text-sm text-muted-foreground w-20">调整余额</label>
-              <Input type="number" id="balance-input" className="w-32" defaultValue={user.balance} step="0.01" />
-              <Button size="sm" onClick={handleUpdateBalance}>调整余额</Button>
+              <label className="text-sm text-muted-foreground w-20">添加余额</label>
+              <Input type="number" id="balance-input" className="w-32" defaultValue={0} step="0.01" />
+              <Button size="sm" onClick={handleUpdateBalance}>添加余额</Button>
             </div>
           </CardContent>
         </Card>

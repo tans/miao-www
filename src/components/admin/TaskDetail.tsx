@@ -75,7 +75,23 @@ export function TaskDetail() {
     try {
       const res = await api.getTaskDetail(id);
       if (res.code === 0) {
-        setTask(res.data.task);
+        // Backend returns task data directly in res.data, not res.data.task
+        const taskData = res.data;
+        // Convert string status to number for compatibility with frontend
+        const statusMapStrToNum: Record<string, number> = {
+          "pending": 1,
+          "published": 2,
+          "completed": 3,
+          "cancelled": 5,
+        };
+        // Calculate total_budget from unit_price and total_count
+        const totalBudget = taskData.unit_price * taskData.total_count;
+        setTask({
+          ...taskData,
+          status: statusMapStrToNum[taskData.status] || taskData.status,
+          total_budget: totalBudget,
+          business_id: taskData.business_id || 0,
+        });
         loadClaims(id);
       } else {
         setError(res.message);

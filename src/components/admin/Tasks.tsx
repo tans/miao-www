@@ -170,8 +170,12 @@ export function Tasks() {
                 <TableBody>
                   {tasks.map((task) => (
                     <TableRow key={task.id}>
-                      <TableCell className="font-mono text-xs">{task.id}</TableCell>
-                      <TableCell className="font-medium max-w-64 truncate">{task.title}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        <a href={`/admin/task-detail?id=${task.id}`} className="text-primary hover:underline">{task.id}</a>
+                      </TableCell>
+                      <TableCell className="font-medium max-w-64 truncate">
+                        <a href={`/admin/task-detail?id=${task.id}`} className="hover:underline">{task.title}</a>
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{task.business_id}</TableCell>
                       <TableCell className="font-mono">¥{(task.unit_price ?? 0).toFixed(2)}</TableCell>
                       <TableCell>

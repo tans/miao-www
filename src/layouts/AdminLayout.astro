@@ -323,14 +323,19 @@ const bottomMenuItems = [
         try {
           const res = await api.getStats();
           if (res.code === 0 && res.data) {
-            const counts = [
-              { menu: "users", value: res.data.total_users },
-              { menu: "tasks", value: res.data.total_tasks },
-              { menu: "works", value: res.data.total_works },
-            ];
-            counts.forEach(({ menu, value }) => {
-              const el = document.querySelector(`[data-menu="${menu}"] .nav-count`);
-              if (el) el.textContent = String(value);
+            document.querySelectorAll("[data-menu]").forEach(el => {
+              const menu = el.getAttribute("data-menu");
+              const countEl = el.nextElementSibling;
+              if (!countEl || !countEl.classList.contains("nav-count")) return;
+
+              let value = 0;
+              if (menu === "users") value = res.data.total_users;
+              else if (menu === "tasks") value = res.data.total_tasks;
+              else if (menu === "works") value = res.data.total_claims;
+              else if (menu === "inspirations") value = res.data.total_inspirations;
+              else if (menu === "appeals") value = res.data.pending_appeals;
+
+              if (value) countEl.textContent = String(value);
             });
           }
         } catch (e) {

@@ -18,7 +18,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
         <button id="btn-clear-user" class="ml-2 text-muted-foreground hover:text-red-600">×</button>
       </span>
       <span id="sim-user-token-display" class="hidden ml-2">
-        <code id="sim-user-token-preview" class="text-xs text-muted-foreground"></code>
+        <code id="sim-user-token-preview" class="text-xs text-muted-foreground max-w-[200px] truncate inline-block"></code>
       </span>
       <span class="ml-auto flex items-center gap-2">
         <input type="text" id="search-api" placeholder="搜索..." class="h-7 px-2 rounded border border-input bg-transparent text-xs w-32">
@@ -128,11 +128,7 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
         badge.textContent = `${simUserInfo.username} (ID:${simUserInfo.id})`;
 
         const preview = document.getElementById('sim-user-token-preview')!;
-        preview.textContent = simUserToken;
-
-        (document.querySelectorAll('[data-endpoint-token]') as NodeListOf<HTMLInputElement>).forEach(input => {
-          input.value = simUserToken || '';
-        });
+        preview.textContent = simUserToken ? simUserToken.slice(0, 20) + '...' : '';
       } else {
         alert(data.message || '获取Token失败');
       }
@@ -148,7 +144,6 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
     document.getElementById('sim-user-btn-section')!.classList.add('hidden');
     document.getElementById('sim-user-info')!.classList.add('hidden');
     document.getElementById('sim-user-token-display')!.classList.add('hidden');
-    (document.querySelectorAll('[data-endpoint-token]') as NodeListOf<HTMLInputElement>).forEach(input => { input.value = ''; });
   }
 
   async function loadAPI() {
@@ -211,10 +206,6 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
         details.classList.toggle('hidden');
       });
     });
-
-    if (simUserToken) {
-      (document.querySelectorAll('[data-endpoint-token]') as NodeListOf<HTMLInputElement>).forEach(input => { input.value = simUserToken || ''; });
-    }
   }
 
   function renderEndpoint(ep: any) {
@@ -244,7 +235,6 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
     }
 
     const authMark = isAuth ? '<span class="text-xs text-yellow-600">🔒</span>' : '<span class="text-xs text-muted-foreground">○</span>';
-    const defaultToken = simUserToken || '';
 
     return `<div class="endpoint-card mb-2 border-l-2 border-l-primary bg-card" data-path="${ep.path}" data-method="${ep.method}">
       <div class="endpoint-header cursor-pointer px-3 py-1.5 bg-muted/50 flex items-center gap-2 hover:bg-muted text-sm">
@@ -255,7 +245,6 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
       </div>
       <div class="p-3 hidden">
         <div class="flex items-center gap-2 mb-2">
-          <input type="text" class="flex-1 h-7 px-2 rounded border border-input bg-transparent text-xs" data-endpoint-token id="token-${epId}" value="${defaultToken}" placeholder="Token">
           <button class="btn-send px-3 py-1 bg-primary text-primary-foreground text-xs rounded hover:bg-primary/90" data-method="${ep.method}" data-path="${ep.path}" data-epid="${epId}">发送</button>
           <button class="btn-clear-resp px-3 py-1 border border-input text-xs rounded hover:bg-muted" data-epid="${epId}">清空</button>
         </div>
@@ -281,12 +270,11 @@ import AdminLayout from "@/layouts/AdminLayout.astro";
   }
 
   async function sendRequest(method: string, path: string, epId: string) {
-    let token = (document.getElementById('token-' + epId) as HTMLInputElement).value;
     const responseEl = document.getElementById('response-' + epId)!;
     const btn = responseEl.closest('.endpoint-card')!.querySelector('.btn-send') as HTMLButtonElement;
 
-    if (!token && simUserToken) token = simUserToken;
-    if (!token) { responseEl.innerHTML = '<span class="text-red-500">需要Token</span>'; return; }
+    const token = simUserToken;
+    if (!token) { responseEl.innerHTML = '<span class="text-red-500">需要选择用户获取Token</span>'; return; }
 
     btn.classList.add('opacity-50', 'pointer-events-none');
     responseEl.textContent = '发送中...';

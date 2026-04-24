@@ -154,11 +154,11 @@ export function Finance() {
                       <TableCell>{tx.type}</TableCell>
                       <TableCell className="font-mono">
                         <span className={tx.amount >= 0 ? "text-green-600" : "text-red-600"}>
-                          {tx.amount >= 0 ? "+" : ""}¥{tx.amount.toFixed(2)}
+                          {tx.amount >= 0 ? "+" : ""}¥{(tx.amount ?? 0).toFixed(2)}
                         </span>
                       </TableCell>
                       <TableCell className="font-mono text-muted-foreground text-xs">
-                        {tx.balance_before.toFixed(2)} → {tx.balance_after.toFixed(2)}
+                        {(tx.balance_before ?? 0).toFixed(2)} → {(tx.balance_after ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">{tx.remark || "-"}</TableCell>
                       <TableCell className="text-muted-foreground text-xs">

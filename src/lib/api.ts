@@ -12,10 +12,16 @@ export interface DashboardStats {
   total_tasks: number
   active_tasks: number
   total_works: number
+  total_inspirations: number
+  total_appeals: number
   pending_tasks: number
   pending_appeals: number
   total_revenue: number
   today_revenue: number
+  // API actual fields
+  total_claims: number
+  total_transaction_amount: number
+  total_admins: number
 }
 
 export interface User {
@@ -189,10 +195,10 @@ class ApiClient {
     })
   }
 
-  async updateUserBalance(id: number, balance: number) {
+  async updateUserBalance(id: number, change: number, reason: string) {
     return this.request<void>(`/api/v1/admin/users/${id}/balance`, {
       method: 'PUT',
-      body: JSON.stringify({ balance }),
+      body: JSON.stringify({ change, reason }),
     })
   }
 
