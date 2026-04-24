@@ -52,7 +52,7 @@ export function WorkDetail({ workId }: WorkDetailProps) {
     try {
       const res = await api.getWorkDetail(parseInt(workId));
       if (res.code === 0) {
-        setWork(res.data.work);
+        setWork(res.data as Work);
       } else {
         setError(res.message);
       }
