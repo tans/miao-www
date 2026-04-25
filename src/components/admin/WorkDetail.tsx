@@ -27,10 +27,12 @@ interface Work {
   videos?: string[];
 }
 
-const statusMap: Record<number, { label: string; variant: "default" | "secondary" | "destructive" }> = {
-  1: { label: "待审核", variant: "secondary" },
-  2: { label: "已通过", variant: "default" },
-  3: { label: "未通过", variant: "destructive" },
+const statusMap: Record<number, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  1: { label: "已认领", variant: "secondary" },
+  2: { label: "待验收", variant: "secondary" },
+  3: { label: "已验收", variant: "default" },
+  4: { label: "已取消", variant: "destructive" },
+  5: { label: "已超时", variant: "outline" },
 };
 
 export function WorkDetail({ workId }: WorkDetailProps) {
@@ -45,12 +47,19 @@ export function WorkDetail({ workId }: WorkDetailProps) {
       return;
     }
 
-    loadWork();
+    const id = parseInt(workId, 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      setError("无效的作品ID");
+      setLoading(false);
+      return;
+    }
+
+    loadWork(id);
   }, [workId]);
 
-  async function loadWork() {
+  async function loadWork(id: number) {
     try {
-      const res = await api.getWorkDetail(parseInt(workId));
+      const res = await api.getWorkDetail(id);
       if (res.code === 0) {
         setWork(res.data as Work);
       } else {
@@ -60,36 +69,6 @@ export function WorkDetail({ workId }: WorkDetailProps) {
       setError("加载失败");
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleApprove() {
-    if (!confirm("确定通过该作品？")) return;
-    try {
-      const res = await api.updateWork(parseInt(workId), { status: 2, review_result: 1 });
-      if (res.code === 0) {
-        toast.success("已通过");
-        loadWork();
-      } else {
-        toast.error("操作失败: " + res.message);
-      }
-    } catch (e) {
-      toast.error("操作失败");
-    }
-  }
-
-  async function handleReject() {
-    if (!confirm("确定拒绝该作品？")) return;
-    try {
-      const res = await api.updateWork(parseInt(workId), { status: 3, review_result: 2 });
-      if (res.code === 0) {
-        toast.success("已拒绝");
-        loadWork();
-      } else {
-        toast.error("操作失败: " + res.message);
-      }
-    } catch (e) {
-      toast.error("操作失败");
     }
   }
 
@@ -220,16 +199,6 @@ export function WorkDetail({ workId }: WorkDetailProps) {
             <CardTitle>操作</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            {work.status === 1 && (
-              <>
-                <Button size="sm" onClick={handleApprove} className="bg-green-600 hover:bg-green-700">
-                  通过
-                </Button>
-                <Button size="sm" variant="destructive" onClick={handleReject}>
-                  拒绝
-                </Button>
-              </>
-            )}
             <Button size="sm" onClick={handleEdit}>
               编辑
             </Button>

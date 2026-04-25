@@ -30,7 +30,6 @@ interface Claim {
   creator_id: number;
   status: number;
   submit_at?: string;
-  work_id: number;
 }
 
 const statusMap: Record<number, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -287,7 +286,7 @@ export function TaskDetail() {
                       {claim.submit_at ? new Date(claim.submit_at).toLocaleString("zh-CN") : "-"}
                     </TableCell>
                     <TableCell>
-                      <a href={`/admin/work-detail?id=${claim.work_id}`} className="text-primary hover:underline text-sm">
+                      <a href={`/admin/work-detail?id=${claim.id}`} className="text-primary hover:underline text-sm">
                         查看作品
                       </a>
                     </TableCell>
