@@ -24,6 +24,23 @@ export function InspirationModal({ onSaved }: InspirationModalProps) {
   const [coverUrl, setCoverUrl] = useState("")
   const [status, setStatus] = useState(1)
 
+  function inferFileType(url: string) {
+    const cleanUrl = url.split("?")[0].toLowerCase()
+    if (/\.(mp4|mov|webm|m4v)$/.test(cleanUrl)) return "video/mp4"
+    if (/\.(png)$/.test(cleanUrl)) return "image/png"
+    if (/\.(webp)$/.test(cleanUrl)) return "image/webp"
+    return "image/jpeg"
+  }
+
+  function fileNameFromUrl(url: string) {
+    try {
+      const pathname = new URL(url).pathname
+      return pathname.split("/").filter(Boolean).pop() || "cover"
+    } catch {
+      return url.split("/").filter(Boolean).pop() || "cover"
+    }
+  }
+
   const openModal = (isEditMode: boolean, data?: any) => {
     setIsEdit(isEditMode)
     if (isEditMode && data) {
@@ -62,7 +79,26 @@ export function InspirationModal({ onSaved }: InspirationModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const data = { title, content, cover_url: coverUrl, status }
+    if (!coverUrl.trim()) {
+      toast.error("请输入封面URL")
+      return
+    }
+
+    const fileType = inferFileType(coverUrl)
+    const data = {
+      title,
+      content,
+      cover_url: coverUrl,
+      cover_type: fileType.startsWith("video/") ? "video" : "image",
+      status,
+      materials: [{
+        file_name: fileNameFromUrl(coverUrl),
+        file_path: coverUrl,
+        file_type: fileType,
+        thumbnail_path: fileType.startsWith("image/") ? coverUrl : "",
+        sort_order: 0,
+      }],
+    }
 
     try {
       let res
@@ -123,6 +159,7 @@ export function InspirationModal({ onSaved }: InspirationModalProps) {
                 id="inspiration-cover"
                 value={coverUrl}
                 onChange={(e) => setCoverUrl(e.target.value)}
+                required
                 placeholder="https://..."
               />
             </div>

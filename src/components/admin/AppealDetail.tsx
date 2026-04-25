@@ -18,13 +18,12 @@ interface Appeal {
   id: number;
   type: number;
   status: number;
-  task_id: number;
-  claim_id: number;
+  target_id: number;
   user_id: number;
   created_at: string;
   handle_at?: string;
   reason?: string;
-  reply?: string;
+  result?: string;
 }
 
 const statusMap: Record<number, { label: string; variant: "default" | "secondary" | "outline" }> = {
@@ -43,7 +42,7 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
   const [appeal, setAppeal] = useState<Appeal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [handleStatus, setHandleStatus] = useState("2");
+  const [handleStatus, setHandleStatus] = useState("accepted");
   const [handleReply, setHandleReply] = useState("");
 
   useEffect(() => {
@@ -53,14 +52,21 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
       return;
     }
 
-    loadAppeal();
+    const id = parseInt(appealId, 10);
+    if (!Number.isFinite(id) || id <= 0) {
+      setError("无效的申诉ID");
+      setLoading(false);
+      return;
+    }
+
+    loadAppeal(id);
   }, [appealId]);
 
-  async function loadAppeal() {
+  async function loadAppeal(id: number) {
     try {
-      const res = await api.getAppealDetail(parseInt(appealId));
+      const res = await api.getAppealDetail(id);
       if (res.code === 0) {
-        setAppeal(res.data.appeal);
+        setAppeal(res.data as Appeal);
       } else {
         setError(res.message);
       }
@@ -79,14 +85,13 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
 
     if (!confirm("确定提交处理结果？")) return;
 
-    const accepted = handleStatus === "2";
-    const action = accepted ? "refund" : "dismiss";
+    const accepted = handleStatus === "accepted";
 
     try {
-      const res = await api.handleAppeal(parseInt(appealId), accepted, action, handleReply);
+      const res = await api.handleAppeal(parseInt(appealId, 10), accepted, handleReply);
       if (res.code === 0) {
         toast.success("处理成功");
-        loadAppeal();
+        loadAppeal(parseInt(appealId, 10));
       } else {
         toast.error("处理失败: " + res.message);
       }
@@ -129,14 +134,10 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
             </Badge>
           </div>
           <div className="flex justify-between py-2 border-b">
-            <span className="text-muted-foreground text-sm">任务ID</span>
-            <a href={`/admin/task-detail?id=${appeal.task_id}`} className="text-primary hover:underline font-mono text-sm">
-              {appeal.task_id}
+            <span className="text-muted-foreground text-sm">关联ID</span>
+            <a href={`/admin/task-detail?id=${appeal.target_id}`} className="text-primary hover:underline font-mono text-sm">
+              {appeal.target_id}
             </a>
-          </div>
-          <div className="flex justify-between py-2 border-b">
-            <span className="text-muted-foreground text-sm">认领ID</span>
-            <span className="font-mono text-sm">{appeal.claim_id}</span>
           </div>
           <div className="flex justify-between py-2 border-b">
             <span className="text-muted-foreground text-sm">用户ID</span>
@@ -164,13 +165,13 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
         </CardContent>
       </Card>
 
-      {appeal.reply && (
+      {appeal.result && (
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>处理回复</CardTitle>
+            <CardTitle>处理结果</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="whitespace-pre-wrap text-sm">{appeal.reply}</div>
+            <div className="whitespace-pre-wrap text-sm">{appeal.result}</div>
           </CardContent>
         </Card>
       )}
@@ -190,8 +191,8 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
                   value={handleStatus}
                   onChange={(e) => setHandleStatus(e.target.value)}
                 >
-                  <option value="2">通过申诉</option>
-                  <option value="3">拒绝申诉</option>
+                  <option value="accepted">通过申诉</option>
+                  <option value="rejected">拒绝申诉</option>
                 </select>
                 <svg
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"

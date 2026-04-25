@@ -14,22 +14,17 @@ import { toast } from "sonner";
 interface Task {
   id: number;
   title: string;
-  business_id: number;
-  unit_price: number;
-  total_budget: number;
-  remaining_count: number;
-  claimed_count: number;
-  submitted_count: number;
+  business_name?: string;
+  reward?: number;
   status: string;
   created_at: string;
 }
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  "1": { label: "待审核", variant: "secondary" },
-  "2": { label: "已上架", variant: "default" },
-  "3": { label: "进行中", variant: "default" },
-  "4": { label: "已结束", variant: "outline" },
-  "5": { label: "已取消", variant: "destructive" },
+  pending: { label: "待审核", variant: "secondary" },
+  published: { label: "已上架", variant: "default" },
+  completed: { label: "已结束", variant: "outline" },
+  cancelled: { label: "已取消", variant: "destructive" },
 };
 
 export function Tasks() {
@@ -131,10 +126,10 @@ export function Tasks() {
             client:only="react"
             options={[
               { value: "", label: "全部" },
-              { value: "1", label: "待审核" },
-              { value: "2", label: "已上架" },
-              { value: "3", label: "进行中" },
-              { value: "5", label: "已结束" },
+              { value: "pending", label: "待审核" },
+              { value: "published", label: "已上架" },
+              { value: "completed", label: "已结束" },
+              { value: "cancelled", label: "已取消" },
             ]}
             id="filter-tabs"
             className="mb-0"
@@ -158,10 +153,8 @@ export function Tasks() {
                   <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>标题</TableHead>
-                    <TableHead>商家ID</TableHead>
-                    <TableHead>单价</TableHead>
-                    <TableHead>预算/剩余</TableHead>
-                    <TableHead>已认领/已提交</TableHead>
+                    <TableHead>商家</TableHead>
+                    <TableHead>奖励</TableHead>
                     <TableHead>状态</TableHead>
                     <TableHead>创建时间</TableHead>
                     <TableHead>操作</TableHead>
@@ -176,16 +169,8 @@ export function Tasks() {
                       <TableCell className="font-medium max-w-64 truncate">
                         <a href={`/admin/task-detail?id=${task.id}`} className="hover:underline">{task.title}</a>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{task.business_id}</TableCell>
-                      <TableCell className="font-mono">¥{(task.unit_price ?? 0).toFixed(2)}</TableCell>
-                      <TableCell>
-                        <span className="font-mono">{task.total_budget}</span> /{" "}
-                        <span className="text-muted-foreground">{task.remaining_count}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono">{task.claimed_count || 0}</span> /{" "}
-                        <span className="text-muted-foreground">{task.submitted_count || 0}</span>
-                      </TableCell>
+                      <TableCell>{task.business_name || "-"}</TableCell>
+                      <TableCell className="font-mono">¥{((task.reward || 0) / 100).toFixed(2)}</TableCell>
                       <TableCell>
                         <Badge variant={statusMap[task.status]?.variant || "secondary"}>
                           {statusMap[task.status]?.label || "未知"}
@@ -199,7 +184,7 @@ export function Tasks() {
                           <a href={`/admin/task-detail?id=${task.id}`} className="text-primary hover:underline text-sm">
                             详情
                           </a>
-                          {task.status === "1" && (
+                          {task.status === "pending" && (
                             <>
                               <button
                                 className="text-green-600 hover:underline text-sm"

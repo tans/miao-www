@@ -203,16 +203,22 @@ class ApiClient {
   }
 
   // Tasks
-  async getTasks(params?: { page?: number; page_size?: number; status?: number }) {
+  async getUserTransactions(id: number) {
+    return this.request<{ transactions: unknown[] }>(`/api/v1/admin/users/${id}/transactions`)
+  }
+
+  // Tasks
+  async getTasks(params?: { page?: number; page_size?: number; status?: number | string; keyword?: string }) {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.set('page', String(params.page))
     if (params?.page_size) searchParams.set('page_size', String(params.page_size))
     if (params?.status !== undefined) searchParams.set('status', String(params.status))
+    if (params?.keyword) searchParams.set('search', params.keyword)
     return this.request<{ tasks: Task[]; total: number }>(`/api/v1/admin/tasks?${searchParams}`)
   }
 
   async getTaskDetail(id: number) {
-    return this.request<{ task: Task }>(`/api/v1/admin/tasks/${id}`)
+    return this.request<Task>(`/api/v1/admin/tasks/${id}`)
   }
 
   async updateTask(id: number, data: Partial<Task>) {
@@ -229,17 +235,19 @@ class ApiClient {
     })
   }
 
-  // Works
-  async getWorks(params?: { page?: number; page_size?: number; status?: number }) {
+  async getWorks(params?: { page?: number; page_size?: number; status?: number; keyword?: string | number }) {
     const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.set('page', String(params.page))
-    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
+    const page = params?.page || 1
+    const pageSize = params?.page_size || 20
+    searchParams.set('limit', String(pageSize))
+    searchParams.set('offset', String((page - 1) * pageSize))
     if (params?.status !== undefined) searchParams.set('status', String(params.status))
+    if (params?.keyword !== undefined) searchParams.set('keyword', String(params.keyword))
     return this.request<{ works: Work[]; total: number }>(`/api/v1/admin/works?${searchParams}`)
   }
 
   async getWorkDetail(id: number) {
-    return this.request<{ work: Work }>(`/api/v1/admin/works/${id}`)
+    return this.request<Work>(`/api/v1/admin/works/${id}`)
   }
 
   async updateWork(id: number, data: Partial<Work>) {
@@ -258,20 +266,22 @@ class ApiClient {
   // Appeals
   async getAppeals(params?: { page?: number; page_size?: number; status?: number }) {
     const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.set('page', String(params.page))
-    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
+    const page = params?.page || 1
+    const pageSize = params?.page_size || 20
+    searchParams.set('limit', String(pageSize))
+    searchParams.set('offset', String((page - 1) * pageSize))
     if (params?.status !== undefined) searchParams.set('status', String(params.status))
     return this.request<{ appeals: Appeal[]; total: number }>(`/api/v1/admin/appeals?${searchParams}`)
   }
 
   async getAppealDetail(id: number) {
-    return this.request<{ appeal: Appeal }>(`/api/v1/admin/appeals/${id}`)
+    return this.request<Appeal>(`/api/v1/admin/appeals/${id}`)
   }
 
-  async handleAppeal(id: number, accepted: boolean, action: string) {
+  async handleAppeal(id: number, accepted: boolean, result: string) {
     return this.request<void>(`/api/v1/admin/appeals/${id}/handle`, {
       method: 'PUT',
-      body: JSON.stringify({ result: accepted ? 1 : 0, action }),
+      body: JSON.stringify({ accepted, result }),
     })
   }
 
@@ -281,11 +291,11 @@ class ApiClient {
     if (params?.page) searchParams.set('page', String(params.page))
     if (params?.page_size) searchParams.set('page_size', String(params.page_size))
     if (params?.status !== undefined) searchParams.set('status', String(params.status))
-    return this.request<{ inspirations: Inspiration[]; total: number }>(`/api/v1/admin/inspirations?${searchParams}`)
+    return this.request<{ items: Inspiration[]; inspirations?: Inspiration[]; total: number }>(`/api/v1/admin/inspirations?${searchParams}`)
   }
 
   async getInspirationDetail(id: number) {
-    return this.request<{ inspiration: Inspiration }>(`/api/v1/admin/inspirations/${id}`)
+    return this.request<Inspiration>(`/api/v1/admin/inspirations/${id}`)
   }
 
   async createInspiration(data: Partial<Inspiration>) {

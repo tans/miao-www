@@ -56,6 +56,7 @@ const roleMap: Record<number, string> = {
 export function UserDetail() {
   const [user, setUser] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -66,21 +67,22 @@ export function UserDetail() {
       return;
     }
 
-    const userId = new URLSearchParams(window.location.search).get("id");
-    if (!userId) {
+    const id = parseInt(new URLSearchParams(window.location.search).get("id") || "", 10);
+    if (!Number.isFinite(id) || id <= 0) {
       setError("无效的用户ID");
       setLoading(false);
       return;
     }
-    loadUser(userId);
+    setUserId(id);
+    loadUser(id);
   }, []);
 
-  async function loadUser(userId: string) {
+  async function loadUser(id: number) {
     try {
-      const res = await api.getUserDetail(parseInt(userId));
+      const res = await api.getUserDetail(id);
       if (res.code === 0) {
         setUser(res.data.user);
-        loadTransactions(userId);
+        loadTransactions(id);
       } else {
         setError(res.message);
         setLoading(false);
@@ -91,11 +93,11 @@ export function UserDetail() {
     }
   }
 
-  async function loadTransactions(userId: string) {
+  async function loadTransactions(id: number) {
     try {
-      const res = await api.request<{ transactions: Transaction[] }>(`/api/v1/admin/users/${userId}/transactions`);
+      const res = await api.getUserTransactions(id);
       if (res.code === 0) {
-        setTransactions(res.data.transactions || []);
+        setTransactions((res.data.transactions || []) as Transaction[]);
       }
     } catch (e) {
       console.error("加载交易记录失败", e);
@@ -105,12 +107,11 @@ export function UserDetail() {
   }
 
   async function handleUpdateStatus() {
-    const userId = new URLSearchParams(window.location.search).get("id");
     if (!userId) return;
     const statusSelect = document.getElementById("status-select") as HTMLSelectElement;
     const status = parseInt(statusSelect.value);
     try {
-      const res = await api.updateUserStatus(parseInt(userId), status);
+      const res = await api.updateUserStatus(userId, status);
       if (res.code === 0) {
         toast.success("状态已更新");
         loadUser(userId);
@@ -130,7 +131,7 @@ export function UserDetail() {
       return;
     }
     try {
-      const res = await api.updateUserBalance(parseInt(userId), change, "管理员调整");
+      const res = await api.updateUserBalance(userId, change, "管理员调整");
       if (res.code === 0) {
         toast.success(`已添加 ¥${change.toFixed(2)}`);
         loadUser(userId);

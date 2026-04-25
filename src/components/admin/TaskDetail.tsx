@@ -14,6 +14,7 @@ interface Task {
   title: string;
   description?: string;
   business_id: number;
+  business_name?: string;
   status: number;
   created_at: string;
   unit_price: number;
@@ -90,6 +91,8 @@ export function TaskDetail() {
           status: statusMapStrToNum[taskData.status] || taskData.status,
           total_budget: totalBudget,
           business_id: taskData.business_id || 0,
+          business_name: taskData.business_name || "",
+          paid_amount: taskData.paid_amount || 0,
         });
         loadClaims(id);
       } else {
@@ -168,8 +171,8 @@ export function TaskDetail() {
               <span className="text-sm whitespace-pre-wrap">{task.description || "-"}</span>
             </div>
             <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground text-sm">商家ID</span>
-              <span className="font-mono text-sm">{task.business_id}</span>
+              <span className="text-muted-foreground text-sm">商家</span>
+              <span className="font-mono text-sm">{task.business_name || task.business_id || "-"}</span>
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-muted-foreground text-sm">状态</span>
@@ -199,7 +202,7 @@ export function TaskDetail() {
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-muted-foreground text-sm">已支付</span>
-              <span className="font-mono">¥{task.paid_amount.toFixed(2)}</span>
+              <span className="font-mono">¥{(task.paid_amount || 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between py-2">
               <span className="text-muted-foreground text-sm">剩余数量</span>

@@ -23,8 +23,11 @@ interface Work {
   created_at: string;
   review_at?: string;
   content?: string;
-  images?: string[];
-  videos?: string[];
+  materials?: Array<{
+    file_path: string;
+    file_type: string;
+    thumbnail_path?: string;
+  }>;
 }
 
 const statusMap: Record<number, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -106,6 +109,15 @@ export function WorkDetail({ workId }: WorkDetailProps) {
     return <div className="text-center py-12 text-muted-foreground">加载中...</div>;
   }
 
+  const imageUrls = (work.materials || [])
+    .filter((material) => material.file_type?.startsWith("image/"))
+    .map((material) => material.thumbnail_path || material.file_path)
+    .filter(Boolean);
+  const videoUrls = (work.materials || [])
+    .filter((material) => material.file_type?.startsWith("video/"))
+    .map((material) => material.file_path)
+    .filter(Boolean);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -166,14 +178,14 @@ export function WorkDetail({ workId }: WorkDetailProps) {
           </CardContent>
         </Card>
 
-        {work.images && work.images.length > 0 && (
+        {imageUrls.length > 0 && (
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>图片 ({work.images.length})</CardTitle>
+              <CardTitle>图片 ({imageUrls.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {work.images.map((img, i) => (
+                {imageUrls.map((img, i) => (
                   <img key={i} src={img} alt="作品图片" className="w-full h-40 object-cover rounded-lg border" />
                 ))}
               </div>
@@ -181,13 +193,13 @@ export function WorkDetail({ workId }: WorkDetailProps) {
           </Card>
         )}
 
-        {work.videos && work.videos.length > 0 && (
+        {videoUrls.length > 0 && (
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>视频 ({work.videos.length})</CardTitle>
+              <CardTitle>视频 ({videoUrls.length})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {work.videos.map((video, i) => (
+              {videoUrls.map((video, i) => (
                 <video key={i} controls src={video} className="w-full max-h-96 rounded-lg border" />
               ))}
             </CardContent>

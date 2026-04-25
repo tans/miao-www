@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FilterTabs } from "@/components/FilterTabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,7 +15,11 @@ interface Work {
   task_id: number;
   creator_id: number;
   content?: string;
-  images?: string[];
+  materials?: Array<{
+    file_path: string;
+    file_type: string;
+    thumbnail_path?: string;
+  }>;
   review_result: number;
   created_at: string;
 }
@@ -33,18 +36,15 @@ export function Works() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [previewImages, setPreviewImages] = useState<string[] | null>(null);
 
-  const loadWorks = useCallback(async (page: number, filterStatus: string, keyword: string) => {
+  const loadWorks = useCallback(async (page: number, keyword: string) => {
     setLoading(true);
     try {
       const params: any = { page, page_size: 20 };
-      if (filterStatus) params.status = parseInt(filterStatus);
       if (keyword) {
-        const num = parseInt(keyword);
-        if (!isNaN(num)) params.keyword = num;
+        params.keyword = keyword;
       }
 
       const res = await api.getWorks(params);
@@ -70,60 +70,27 @@ export function Works() {
       return;
     }
 
-    loadWorks(1, "", "");
+    loadWorks(1, "");
   }, [loadWorks]);
-
-  useEffect(() => {
-    const handleFilterChange = (e: CustomEvent<{ value: string }>) => {
-      setStatus(e.detail.value);
-      loadWorks(1, e.detail.value, searchKeyword);
-    };
-
-    window.addEventListener("filter-tabs-change", handleFilterChange as EventListener);
-    return () => window.removeEventListener("filter-tabs-change", handleFilterChange as EventListener);
-  }, [searchKeyword, loadWorks]);
 
   const handleSearchChange = (value: string) => {
     setSearchKeyword(value);
     const timeoutId = setTimeout(() => {
-      loadWorks(1, status, value);
+      loadWorks(1, value);
     }, 300);
     return () => clearTimeout(timeoutId);
   };
 
-  async function handleQuickApprove(id: number) {
-    if (!confirm("确定通过该作品？")) return;
-    try {
-      const res = await api.updateWork(id, { status: 2, review_result: 1 });
-      if (res.code === 0) {
-        toast.success("已通过");
-        loadWorks(currentPage, status, searchKeyword);
-      } else {
-        toast.error("操作失败: " + res.message);
-      }
-    } catch (e) {
-      toast.error("操作失败");
-    }
-  }
-
-  async function handleQuickReject(id: number) {
-    if (!confirm("确定拒绝该作品？")) return;
-    try {
-      const res = await api.updateWork(id, { status: 3, review_result: 2 });
-      if (res.code === 0) {
-        toast.success("已拒绝");
-        loadWorks(currentPage, status, searchKeyword);
-      } else {
-        toast.error("操作失败: " + res.message);
-      }
-    } catch (e) {
-      toast.error("操作失败");
-    }
-  }
-
   function handlePageChange(newPage: number) {
-    loadWorks(newPage, status, searchKeyword);
+    loadWorks(newPage, searchKeyword);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function getImageUrls(work: Work) {
+    return (work.materials || [])
+      .filter((material) => material.file_type?.startsWith("image/"))
+      .map((material) => material.thumbnail_path || material.file_path)
+      .filter(Boolean);
   }
 
   return (
@@ -133,21 +100,9 @@ export function Works() {
         <div className="flex items-center gap-3">
           <Input
             type="search"
-            placeholder="搜索作品ID/任务ID/创作者ID..."
+            placeholder="搜索作品内容/创作者..."
             className="w-64"
             onChange={(e) => handleSearchChange(e.target.value)}
-          />
-          <FilterTabs
-            client:only="react"
-            options={[
-              { value: "", label: "全部" },
-              { value: "1", label: "待审核" },
-              { value: "2", label: "已通过" },
-              { value: "3", label: "未通过" },
-            ]}
-            id="filter-tabs"
-            className="mb-0"
-            eventName="filter-tabs-change"
           />
         </div>
       </div>
@@ -158,7 +113,7 @@ export function Works() {
             <div className="text-center py-12 text-muted-foreground">加载中...</div>
           ) : works.length === 0 ? (
             <Alert className="m-4">
-              <AlertDescription>暂无数据{searchKeyword || status ? "，请调整筛选条件" : ""}</AlertDescription>
+              <AlertDescription>暂无数据{searchKeyword ? "，请调整搜索条件" : ""}</AlertDescription>
             </Alert>
           ) : (
             <>
@@ -185,12 +140,12 @@ export function Works() {
                         {work.content?.substring(0, 50) || "-"}
                       </TableCell>
                       <TableCell>
-                        {work.images && work.images.length > 0 ? (
+                        {getImageUrls(work).length > 0 ? (
                           <button
                             className="text-primary hover:underline text-sm"
-                            onClick={() => setPreviewImages(work.images || null)}
+                            onClick={() => setPreviewImages(getImageUrls(work))}
                           >
-                            {work.images.length} 张
+                            {getImageUrls(work).length} 张
                           </button>
                         ) : (
                           "-"
@@ -209,22 +164,6 @@ export function Works() {
                           <a href={`/admin/work-detail?id=${work.id}`} className="text-primary hover:underline text-sm">
                             详情
                           </a>
-                          {work.review_result === 1 && (
-                            <>
-                              <button
-                                className="text-green-600 hover:underline text-sm"
-                                onClick={() => handleQuickApprove(work.id)}
-                              >
-                                通过
-                              </button>
-                              <button
-                                className="text-red-600 hover:underline text-sm"
-                                onClick={() => handleQuickReject(work.id)}
-                              >
-                                拒绝
-                              </button>
-                            </>
-                          )}
                         </div>
                       </TableCell>
                     </TableRow>

@@ -42,7 +42,8 @@ export function Inspirations() {
 
       const res = await api.getInspirations(params);
       if (res.code === 0) {
-        setInspirations(res.data.inspirations || []);
+        const data = res.data as any;
+        setInspirations(data.items || data.inspirations || []);
         setTotal(res.data.total || 0);
         setTotalPages(Math.ceil((res.data.total || 0) / 20));
         setCurrentPage(page);
@@ -84,7 +85,7 @@ export function Inspirations() {
     try {
       const res = await api.getInspirationDetail(id);
       if (res.code === 0) {
-        handleOpenModal(true, res.data.inspiration);
+        handleOpenModal(true, res.data);
       }
     } catch (e) {
       toast.error("获取详情失败");
