@@ -9,10 +9,6 @@ import { WorkModal } from "@/components/WorkModal";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
-interface WorkDetailProps {
-  workId: string;
-}
-
 interface Work {
   id: number;
   task_id: number;
@@ -38,8 +34,9 @@ const statusMap: Record<number, { label: string; variant: "default" | "secondary
   5: { label: "已超时", variant: "outline" },
 };
 
-export function WorkDetail({ workId }: WorkDetailProps) {
+export function WorkDetail() {
   const [work, setWork] = useState<Work | null>(null);
+  const [workId, setWorkId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -50,15 +47,16 @@ export function WorkDetail({ workId }: WorkDetailProps) {
       return;
     }
 
-    const id = parseInt(workId, 10);
+    const id = parseInt(new URLSearchParams(window.location.search).get("id") || "", 10);
     if (!Number.isFinite(id) || id <= 0) {
       setError("无效的作品ID");
       setLoading(false);
       return;
     }
 
+    setWorkId(id);
     loadWork(id);
-  }, [workId]);
+  }, []);
 
   async function loadWork(id: number) {
     try {
@@ -76,9 +74,10 @@ export function WorkDetail({ workId }: WorkDetailProps) {
   }
 
   async function handleDelete() {
+    if (!workId) return;
     if (!confirm("确定删除该作品？此操作不可恢复。")) return;
     try {
-      const res = await api.deleteWork(parseInt(workId));
+      const res = await api.deleteWork(workId);
       if (res.code === 0) {
         toast.success("已删除");
         window.location.href = "/admin/works";

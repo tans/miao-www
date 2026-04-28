@@ -1,0 +1,8 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { Claims } from "@/components/admin/Claims";
+---
+
+<AdminLayout title="认领管理" activeMenu="claims">
+  <Claims client:load />
+</AdminLayout>

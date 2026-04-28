@@ -21,7 +21,6 @@ interface Task {
 }
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  pending: { label: "待审核", variant: "secondary" },
   published: { label: "已上架", variant: "default" },
   completed: { label: "已结束", variant: "outline" },
   cancelled: { label: "已取消", variant: "destructive" },
@@ -87,14 +86,13 @@ export function Tasks() {
     return () => clearTimeout(timeoutId);
   };
 
-  async function handleReview(id: number, approved: boolean) {
-    const actionText = approved ? "通过" : "拒绝";
-    if (!confirm(`确定${actionText}该任务？`)) return;
+  async function handleOffline(id: number) {
+    if (!confirm("确定下架该任务？")) return;
 
     try {
-      const res = await api.reviewTask(id, approved);
+      const res = await api.updateTask(id, { status: 5 });
       if (res.code === 0) {
-        toast.success(`已${actionText}`);
+        toast.success("任务已下架");
         loadTasks(currentPage, status, searchKeyword);
       } else {
         toast.error("操作失败: " + res.message);
@@ -126,7 +124,6 @@ export function Tasks() {
             client:only="react"
             options={[
               { value: "", label: "全部" },
-              { value: "pending", label: "待审核" },
               { value: "published", label: "已上架" },
               { value: "completed", label: "已结束" },
               { value: "cancelled", label: "已取消" },
@@ -172,8 +169,8 @@ export function Tasks() {
                       <TableCell>{task.business_name || "-"}</TableCell>
                       <TableCell className="font-mono">¥{((task.reward || 0) / 100).toFixed(2)}</TableCell>
                       <TableCell>
-                        <Badge variant={statusMap[task.status]?.variant || "secondary"}>
-                          {statusMap[task.status]?.label || "未知"}
+                        <Badge variant={statusMap[task.status]?.variant || "default"}>
+                          {statusMap[task.status]?.label || (task.status === "pending" ? "已上架" : "未知")}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">
@@ -184,19 +181,13 @@ export function Tasks() {
                           <a href={`/admin/task-detail?id=${task.id}`} className="text-primary hover:underline text-sm">
                             详情
                           </a>
-                          {task.status === "pending" && (
+                          {(task.status === "published" || task.status === "pending") && (
                             <>
                               <button
-                                className="text-green-600 hover:underline text-sm"
-                                onClick={() => handleReview(task.id, true)}
-                              >
-                                通过
-                              </button>
-                              <button
                                 className="text-red-600 hover:underline text-sm"
-                                onClick={() => handleReview(task.id, false)}
+                                onClick={() => handleOffline(task.id)}
                               >
-                                拒绝
+                                下架
                               </button>
                             </>
                           )}

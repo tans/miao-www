@@ -1,6 +1,25 @@
 const isDev = import.meta.env.DEV
 const API_BASE = import.meta.env.PUBLIC_API_URL || 'https://miao-test.clawos.cc'
 
+export function resolveAssetUrl(raw?: string | null) {
+  const value = (raw || '').trim()
+  if (!value) return ''
+  const lower = value.toLowerCase()
+  if (
+    lower.startsWith('http://') ||
+    lower.startsWith('https://') ||
+    lower.startsWith('data:') ||
+    lower.startsWith('wxfile://') ||
+    lower.startsWith('cloud://')
+  ) {
+    return value
+  }
+  if (value.startsWith('/')) {
+    return `${API_BASE}${value}`
+  }
+  return `${API_BASE}/${value}`
+}
+
 export interface ApiResponse<T = unknown> {
   code: number
   message: string
@@ -27,18 +46,26 @@ export interface DashboardStats {
 export interface User {
   id: number
   username: string
-  email: string
+  email?: string
   phone: string
-  role: number
-  level: number
+  nickname?: string
+  avatar?: string
+  role: number | string
+  level?: number
+  level_name?: string
   balance: number
-  margin_frozen: number
-  daily_claim_count: number
-  daily_claim_reset: string
+  frozen_amount?: number
+  margin_frozen?: number
+  real_name_verified?: boolean
+  business_verified?: boolean
+  adopted_count?: number
+  report_count?: number
+  daily_claim_count?: number
+  daily_claim_reset?: string
   status: number
-  credit_score: number
+  credit_score?: number
   created_at: string
-  updated_at: string
+  updated_at?: string
 }
 
 export interface Task {
@@ -48,6 +75,7 @@ export interface Task {
   description: string
   cover_image: string
   unit_price: number
+  total_count?: number
   total_budget: number
   remaining_count: number
   claimed_count: number
@@ -58,6 +86,93 @@ export interface Task {
   end_at: string
   created_at: string
   updated_at: string
+}
+
+export interface Claim {
+  id: number
+  task_id: number
+  task_title?: string
+  task?: {
+    id?: number
+    title?: string
+  }
+  creator_id: number
+  creator_name?: string
+  creator?: {
+    id?: number
+    username?: string
+    avatar?: string
+  }
+  business_id?: number
+  business_name?: string
+  business?: {
+    id?: number
+    username?: string
+  }
+  status: number
+  status_str?: string
+  content: string
+  submit_at?: string
+  expires_at?: string
+  review_at?: string
+  review_result?: number | null
+  review_result_str?: string
+  review_comment?: string
+  creator_reward?: number
+  platform_fee?: number
+  margin_returned?: number
+  created_at: string
+  updated_at?: string
+  materials?: Array<{
+    id?: number
+    file_name?: string
+    file_path: string
+    file_type?: string
+    thumbnail_path?: string
+    created_at?: string
+  }>
+}
+
+export interface TaskDetail extends Task {
+  business_name?: string
+  deadline?: string
+  reject_reason?: string
+  industries?: string[]
+  styles?: string[]
+  claim_count?: number
+  submit_count?: number
+  approved_count?: number
+  claims?: Claim[]
+  reward?: number
+}
+
+export interface UserDetailResponse {
+  user: User & {
+    role: string | number
+    is_disabled?: boolean
+    is_admin?: boolean
+    created_tasks_count?: number
+    claimed_tasks_count?: number
+    submitted_works_count?: number
+  }
+  created_tasks: {
+    tasks: Task[]
+    total: number
+    page: number
+    page_size: number
+  }
+  participated_tasks: {
+    claims: Claim[]
+    total: number
+    page: number
+    page_size: number
+  }
+  submitted_works: {
+    works: Claim[]
+    total: number
+    page: number
+    page_size: number
+  }
 }
 
 export interface Work {
@@ -178,7 +293,7 @@ class ApiClient {
   }
 
   async getUserDetail(id: number) {
-    return this.request<{ user: User }>(`/api/v1/admin/users/${id}`)
+    return this.request<UserDetailResponse>(`/api/v1/admin/users/${id}`)
   }
 
   async updateUserStatus(id: number, status: number) {
@@ -218,7 +333,7 @@ class ApiClient {
   }
 
   async getTaskDetail(id: number) {
-    return this.request<Task>(`/api/v1/admin/tasks/${id}`)
+    return this.request<TaskDetail>(`/api/v1/admin/tasks/${id}`)
   }
 
   async updateTask(id: number, data: Partial<Task>) {
@@ -410,11 +525,11 @@ class ApiClient {
     if (params?.status !== undefined) searchParams.set('status', String(params.status))
     if (params?.task_id) searchParams.set('task_id', String(params.task_id))
     if (params?.creator_id) searchParams.set('creator_id', String(params.creator_id))
-    return this.request<{ claims: unknown[]; total: number }>(`/api/v1/admin/claims?${searchParams}`)
+    return this.request<{ claims?: Claim[]; data?: Claim[]; total?: number; page?: number; limit?: number } | Claim[]>(`/api/v1/admin/claims?${searchParams}`)
   }
 
   async getClaimDetail(id: number) {
-    return this.request<{ claim: unknown }>(`/api/v1/admin/claims/${id}`)
+    return this.request<{ claim: Claim } | Claim>(`/api/v1/admin/claims/${id}`)
   }
 }
 

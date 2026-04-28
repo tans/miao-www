@@ -1,28 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { api } from "@/lib/api";
+import { api, resolveAssetUrl, type Claim as AdminClaim, type Task as AdminTask, type UserDetailResponse } from "@/lib/api";
 import { toast } from "sonner";
 
-interface User {
-  id: number;
-  username: string;
-  email?: string;
-  phone?: string;
-  role: number;
-  level?: string;
-  status: number;
-  created_at: string;
-  balance: number;
-  frozen_amount: number;
-  credit_score: number;
-}
+type User = UserDetailResponse["user"];
 
 interface Transaction {
   id: number;
@@ -41,20 +30,75 @@ function formatSignedAmount(amount: number) {
   return `${sign}¥${Math.abs(value).toFixed(2)}`;
 }
 
+function formatTaskStatus(status: number | string | undefined) {
+  const map: Record<string, string> = {
+    "1": "已上架",
+    "2": "已上架",
+    "3": "进行中",
+    "4": "已结束",
+    "5": "已取消",
+    pending: "已上架",
+    published: "已上架",
+    completed: "已结束",
+    cancelled: "已取消",
+  };
+  return map[String(status ?? "")] || "未知";
+}
+
+function formatClaimStatus(claim: AdminClaim) {
+  const map: Record<string, string> = {
+    "1": "已认领",
+    "2": "已提交",
+    "3": "已验收",
+    "4": "已取消",
+    "5": "已超时",
+  };
+  return claim.status_str || map[String(claim.status ?? "")] || "未知";
+}
+
+function formatReviewResult(claim: AdminClaim) {
+  if (claim.review_result_str) return claim.review_result_str;
+  if (claim.review_result === 1) return "通过";
+  if (claim.review_result === 2) return "退回";
+  if (claim.review_result === 3) return "举报";
+  return "待验收";
+}
+
+function formatMoney(amount?: number) {
+  return `¥${(amount ?? 0).toFixed(2)}`;
+}
+
+function getUserDisplayName(user: User) {
+  return user.nickname || user.username || `用户${user.id}`;
+}
+
+function getUserInitial(user: User) {
+  return (getUserDisplayName(user).trim().charAt(0) || "用").toUpperCase();
+}
+
 const statusMap: Record<number, { label: string; variant: "default" | "destructive" | "secondary" }> = {
   0: { label: "禁用", variant: "destructive" },
   1: { label: "正常", variant: "default" },
   2: { label: "冻结", variant: "secondary" },
 };
 
-const roleMap: Record<number, string> = {
-  1: "创作者",
-  2: "商家",
-  3: "管理员",
+const roleMap: Record<string, string> = {
+  creator: "创作者",
+  business: "商家",
+  admin: "管理员",
+  "1": "创作者",
+  "2": "商家",
+  "3": "管理员",
 };
 
 export function UserDetail() {
   const [user, setUser] = useState<User | null>(null);
+  const [createdTasks, setCreatedTasks] = useState<AdminTask[]>([]);
+  const [participatedClaims, setParticipatedClaims] = useState<AdminClaim[]>([]);
+  const [submittedWorks, setSubmittedWorks] = useState<AdminClaim[]>([]);
+  const [createdTasksTotal, setCreatedTasksTotal] = useState(0);
+  const [participatedTotal, setParticipatedTotal] = useState(0);
+  const [submittedTotal, setSubmittedTotal] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,6 +117,7 @@ export function UserDetail() {
       setLoading(false);
       return;
     }
+
     setUserId(id);
     loadUser(id);
   }, []);
@@ -82,6 +127,12 @@ export function UserDetail() {
       const res = await api.getUserDetail(id);
       if (res.code === 0) {
         setUser(res.data.user);
+        setCreatedTasks(res.data.created_tasks?.tasks || []);
+        setParticipatedClaims(res.data.participated_tasks?.claims || []);
+        setSubmittedWorks(res.data.submitted_works?.works || []);
+        setCreatedTasksTotal(res.data.created_tasks?.total || 0);
+        setParticipatedTotal(res.data.participated_tasks?.total || 0);
+        setSubmittedTotal(res.data.submitted_works?.total || 0);
         loadTransactions(id);
       } else {
         setError(res.message);
@@ -124,6 +175,7 @@ export function UserDetail() {
   }
 
   async function handleUpdateBalance() {
+    if (!userId) return;
     const balanceInput = document.getElementById("balance-input") as HTMLInputElement;
     const change = parseFloat(balanceInput.value);
     if (isNaN(change) || change === 0) {
@@ -155,6 +207,9 @@ export function UserDetail() {
     return <div className="text-center py-12 text-muted-foreground">加载中...</div>;
   }
 
+  const roleValue = String(user.role ?? "");
+  const roleLabel = roleMap[roleValue] || roleMap[String(Number(roleValue))] || "未知";
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -162,38 +217,44 @@ export function UserDetail() {
           <CardHeader>
             <CardTitle>基本信息</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between py-2 border-b">
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar size="lg">
+                <AvatarImage src={resolveAssetUrl(user.avatar)} alt={getUserDisplayName(user)} />
+                <AvatarFallback>{getUserInitial(user)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <div className="truncate text-lg font-semibold">{getUserDisplayName(user)}</div>
+                <div className="truncate text-sm text-muted-foreground">@{user.username}</div>
+                <div className="mt-2 text-sm text-muted-foreground">{user.phone || "未绑定手机号"}</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">{roleLabel}</Badge>
+              <Badge variant={user.real_name_verified ? "default" : "secondary"}>
+                {user.real_name_verified ? "实名已认证" : "实名未认证"}
+              </Badge>
+              <Badge variant={user.business_verified ? "default" : "secondary"}>
+                {user.business_verified ? "商家已认证" : "商家未认证"}
+              </Badge>
+            </div>
+            <div className="flex justify-between gap-4 py-2 border-b">
               <span className="text-muted-foreground text-sm">用户ID</span>
               <span className="font-mono text-sm">{user.id}</span>
             </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground text-sm">用户名</span>
-              <span className="font-medium">{user.username}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground text-sm">邮箱</span>
-              <span className="text-sm">{user.email || "-"}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground text-sm">手机号</span>
-              <span className="text-sm">{user.phone || "-"}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground text-sm">角色</span>
-              <Badge variant="outline">{roleMap[user.role] || "未知"}</Badge>
-            </div>
-            <div className="flex justify-between py-2 border-b">
+            <div className="flex justify-between gap-4 py-2 border-b">
               <span className="text-muted-foreground text-sm">等级</span>
-              <span className="text-sm">{user.level || "-"}</span>
+              <span className="text-sm">{user.level_name || `Lv.${user.level ?? 0}`}</span>
             </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground text-sm">状态</span>
-              <Badge variant={statusMap[user.status]?.variant || "secondary"}>
-                {statusMap[user.status]?.label || "未知"}
-              </Badge>
+            <div className="flex justify-between gap-4 py-2 border-b">
+              <span className="text-muted-foreground text-sm">采纳数</span>
+              <span className="text-sm">{user.adopted_count ?? 0}</span>
             </div>
-            <div className="flex justify-between py-2">
+            <div className="flex justify-between gap-4 py-2 border-b">
+              <span className="text-muted-foreground text-sm">举报数</span>
+              <span className="text-sm">{user.report_count ?? 0}</span>
+            </div>
+            <div className="flex justify-between gap-4 py-2">
               <span className="text-muted-foreground text-sm">注册时间</span>
               <span className="text-sm">{new Date(user.created_at).toLocaleString("zh-CN")}</span>
             </div>
@@ -213,9 +274,13 @@ export function UserDetail() {
               <span className="text-muted-foreground text-sm">冻结金额</span>
               <span className="font-mono">¥{(user.frozen_amount || 0).toFixed(2)}</span>
             </div>
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-muted-foreground text-sm">保证金冻结</span>
+              <span className="font-mono">¥{(user.margin_frozen || 0).toFixed(2)}</span>
+            </div>
             <div className="flex justify-between py-2">
-              <span className="text-muted-foreground text-sm">信用评分</span>
-              <span className="text-sm">{user.credit_score || 0}</span>
+              <span className="text-muted-foreground text-sm">可用余额</span>
+              <span className="text-sm">¥{Math.max(0, (user.balance || 0) - (user.frozen_amount || 0)).toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
@@ -253,13 +318,163 @@ export function UserDetail() {
               <Button size="sm" onClick={handleUpdateStatus}>更新状态</Button>
             </div>
             <div className="flex items-center gap-3">
-              <label className="text-sm text-muted-foreground w-20">添加余额</label>
+              <label className="text-sm text-muted-foreground w-20">调整余额</label>
               <Input type="number" id="balance-input" className="w-32" defaultValue={0} step="0.01" />
               <Button size="sm" onClick={handleUpdateBalance}>添加余额</Button>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>创建任务 ({createdTasksTotal})</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {createdTasks.length === 0 ? (
+            <Alert className="m-4">
+              <AlertDescription>暂无创建任务</AlertDescription>
+            </Alert>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>标题</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>预算</TableHead>
+                  <TableHead>剩余</TableHead>
+                  <TableHead>创建时间</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {createdTasks.map((task) => (
+                  <TableRow key={task.id}>
+                    <TableCell className="font-mono text-xs">{task.id}</TableCell>
+                    <TableCell className="font-medium max-w-64 truncate">{task.title}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{formatTaskStatus(task.status)}</Badge>
+                    </TableCell>
+                    <TableCell className="font-mono">{formatMoney(task.total_budget || task.unit_price * (task.total_count || 0))}</TableCell>
+                    <TableCell className="font-mono">
+                      {task.remaining_count ?? 0} / {task.total_count ?? 0}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {task.created_at ? new Date(task.created_at).toLocaleString("zh-CN") : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <a href={`/admin/task-detail?id=${task.id}`} className="text-primary hover:underline text-sm">
+                        详情
+                      </a>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>参与认领 ({participatedTotal})</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {participatedClaims.length === 0 ? (
+            <Alert className="m-4">
+              <AlertDescription>暂无参与认领</AlertDescription>
+            </Alert>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>任务</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>内容</TableHead>
+                  <TableHead>提交时间</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {participatedClaims.map((claim) => (
+                  <TableRow key={claim.id}>
+                    <TableCell className="font-mono text-xs">{claim.id}</TableCell>
+                    <TableCell className="max-w-64 truncate">
+                      <div className="font-medium">{claim.task_title || claim.task?.title || claim.task_id}</div>
+                      <div className="text-xs text-muted-foreground font-mono">任务ID: {claim.task_id}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{formatClaimStatus(claim)}</Badge>
+                    </TableCell>
+                    <TableCell className="max-w-72 truncate text-muted-foreground">{claim.content || "-"}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {claim.submit_at ? new Date(claim.submit_at).toLocaleString("zh-CN") : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <a href={`/admin/work-detail?id=${claim.id}`} className="text-primary hover:underline text-sm">
+                        查看作品
+                      </a>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>提交作品 ({submittedTotal})</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {submittedWorks.length === 0 ? (
+            <Alert className="m-4">
+              <AlertDescription>暂无提交作品</AlertDescription>
+            </Alert>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>任务</TableHead>
+                  <TableHead>审核结果</TableHead>
+                  <TableHead>内容</TableHead>
+                  <TableHead>审核时间</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {submittedWorks.map((claim) => (
+                  <TableRow key={claim.id}>
+                    <TableCell className="font-mono text-xs">{claim.id}</TableCell>
+                    <TableCell className="max-w-64 truncate">
+                      <div className="font-medium">{claim.task_title || claim.task?.title || claim.task_id}</div>
+                      <div className="text-xs text-muted-foreground font-mono">任务ID: {claim.task_id}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={claim.review_result === 1 ? "default" : claim.review_result === 2 ? "destructive" : "secondary"}>
+                        {formatReviewResult(claim)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-72 truncate text-muted-foreground">{claim.content || "-"}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {claim.review_at ? new Date(claim.review_at).toLocaleString("zh-CN") : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <a href={`/admin/work-detail?id=${claim.id}`} className="text-primary hover:underline text-sm">
+                        查看详情
+                      </a>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
