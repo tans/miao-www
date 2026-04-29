@@ -217,6 +217,12 @@ export interface Inspiration {
   updated_at: string
 }
 
+export interface AISettings {
+  ai_api_key: string
+  ai_api_endpoint: string
+  ai_model: string
+}
+
 class ApiClient {
   private token: string | null = null
 
@@ -456,6 +462,17 @@ class ApiClient {
 
   async updateSettings(settings: Record<string, string>) {
     return this.request<void>('/api/v1/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    })
+  }
+
+  async getAISettings() {
+    return this.request<AISettings>('/api/v1/admin/ai-settings')
+  }
+
+  async updateAISettings(settings: AISettings) {
+    return this.request<AISettings>('/api/v1/admin/ai-settings', {
       method: 'PUT',
       body: JSON.stringify(settings),
     })
