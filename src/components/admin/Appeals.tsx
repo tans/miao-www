@@ -26,8 +26,6 @@ const statusMap: Record<number, { label: string; variant: "default" | "secondary
 
 const typeMap: Record<number, string> = {
   1: "任务申诉",
-  2: "提现申诉",
-  3: "其他",
 };
 
 export function Appeals() {
@@ -83,6 +81,13 @@ export function Appeals() {
   function handlePageChange(newPage: number) {
     loadAppeals(newPage, status);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openAppealDetail(id: number) {
+    if (!Number.isFinite(id) || id <= 0) return;
+    try {
+      sessionStorage.setItem("admin_last_appeal_id", String(id));
+    } catch (_) {}
   }
 
   return (
@@ -145,11 +150,19 @@ export function Appeals() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <a href={`/admin/appeal-detail?id=${appeal.id}`} className="text-primary hover:underline text-sm">
+                          <a
+                            href={`/admin/appeal-detail/?id=${appeal.id}#id=${appeal.id}`}
+                            onClick={() => openAppealDetail(appeal.id)}
+                            className="text-primary hover:underline text-sm"
+                          >
                             详情
                           </a>
                           {appeal.status === 1 && (
-                            <a href={`/admin/appeal-detail?id=${appeal.id}`} className="text-green-600 hover:underline text-sm">
+                            <a
+                              href={`/admin/appeal-detail/?id=${appeal.id}#id=${appeal.id}`}
+                              onClick={() => openAppealDetail(appeal.id)}
+                              className="text-green-600 hover:underline text-sm"
+                            >
                               处理
                             </a>
                           )}

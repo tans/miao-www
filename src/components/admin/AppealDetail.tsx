@@ -11,7 +11,7 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 
 interface AppealDetailProps {
-  appealId: string;
+  appealId?: string;
 }
 
 interface Appeal {
@@ -34,9 +34,36 @@ const statusMap: Record<number, { label: string; variant: "default" | "secondary
 
 const typeMap: Record<number, string> = {
   1: "任务申诉",
-  2: "提现申诉",
-  3: "其他",
 };
+
+function resolveAppealId(appealId?: string) {
+  const directId = parseInt(appealId || "", 10);
+  if (Number.isFinite(directId) && directId > 0) {
+    return directId;
+  }
+
+  if (typeof window !== "undefined") {
+    const hashMatch = window.location.hash.match(/(?:^#|[?&])id=(\d+)/);
+    const hashId = parseInt(hashMatch?.[1] || "", 10);
+    if (Number.isFinite(hashId) && hashId > 0) {
+      return hashId;
+    }
+
+    const searchId = parseInt(new URLSearchParams(window.location.search).get("id") || "", 10);
+    if (Number.isFinite(searchId) && searchId > 0) {
+      return searchId;
+    }
+
+    try {
+      const cachedId = parseInt(sessionStorage.getItem("admin_last_appeal_id") || "", 10);
+      if (Number.isFinite(cachedId) && cachedId > 0) {
+        return cachedId;
+      }
+    } catch (_) {}
+  }
+
+  return NaN;
+}
 
 export function AppealDetail({ appealId }: AppealDetailProps) {
   const [appeal, setAppeal] = useState<Appeal | null>(null);
@@ -52,7 +79,9 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
       return;
     }
 
-    const id = parseInt(appealId, 10);
+    const id = resolveAppealId(
+      appealId || new URLSearchParams(window.location.search).get("id") || ""
+    );
     if (!Number.isFinite(id) || id <= 0) {
       setError("无效的申诉ID");
       setLoading(false);
@@ -86,12 +115,19 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
     if (!confirm("确定提交处理结果？")) return;
 
     const accepted = handleStatus === "accepted";
+    const id = resolveAppealId(
+      appealId || new URLSearchParams(window.location.search).get("id") || ""
+    );
+    if (!Number.isFinite(id) || id <= 0) {
+      toast.error("无效的申诉ID");
+      return;
+    }
 
     try {
-      const res = await api.handleAppeal(parseInt(appealId, 10), accepted, handleReply);
+      const res = await api.handleAppeal(id, accepted, handleReply);
       if (res.code === 0) {
         toast.success("处理成功");
-        loadAppeal(parseInt(appealId, 10));
+        loadAppeal(id);
       } else {
         toast.error("处理失败: " + res.message);
       }

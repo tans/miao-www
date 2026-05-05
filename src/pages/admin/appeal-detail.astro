@@ -10,6 +10,6 @@ import { AppealDetail } from "@/components/admin/AppealDetail";
       <h1 class="text-2xl font-semibold">申诉详情</h1>
     </div>
 
-    <AppealDetail client:load appealId={new URLSearchParams(Astro.url.search).get("id") || ""} />
+    <AppealDetail client:load />
   </div>
 </AdminLayout>
