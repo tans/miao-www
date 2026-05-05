@@ -12,7 +12,8 @@ import { api } from "@/lib/api";
 interface Appeal {
   id: number;
   type: number;
-  target_id: number;
+  claim_id?: number;
+  task_id?: number;
   user_id: number;
   reason: string;
   status: number;
@@ -25,7 +26,7 @@ const statusMap: Record<number, { label: string; variant: "default" | "secondary
 };
 
 const typeMap: Record<number, string> = {
-  1: "任务申诉",
+  1: "作品申诉",
 };
 
 export function Appeals() {
@@ -122,7 +123,8 @@ export function Appeals() {
                   <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>类型</TableHead>
-                    <TableHead>关联ID</TableHead>
+                    <TableHead>作品ID</TableHead>
+                    <TableHead>任务ID</TableHead>
                     <TableHead>用户ID</TableHead>
                     <TableHead>原因</TableHead>
                     <TableHead>状态</TableHead>
@@ -137,7 +139,20 @@ export function Appeals() {
                       <TableCell>
                         <Badge variant="outline">{typeMap[appeal.type] || "未知"}</Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{appeal.target_id}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {appeal.claim_id ? (
+                          <a href={`/admin/work-detail?id=${appeal.claim_id}`} className="text-primary hover:underline">
+                            {appeal.claim_id}
+                          </a>
+                        ) : "-"}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {appeal.task_id ? (
+                          <a href={`/admin/task-detail?id=${appeal.task_id}`} className="text-primary hover:underline">
+                            {appeal.task_id}
+                          </a>
+                        ) : "-"}
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{appeal.user_id}</TableCell>
                       <TableCell className="max-w-64 truncate text-muted-foreground">{appeal.reason}</TableCell>
                       <TableCell>

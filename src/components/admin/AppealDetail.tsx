@@ -18,7 +18,8 @@ interface Appeal {
   id: number;
   type: number;
   status: number;
-  target_id: number;
+  claim_id?: number;
+  task_id?: number;
   user_id: number;
   created_at: string;
   handle_at?: string;
@@ -33,7 +34,7 @@ const statusMap: Record<number, { label: string; variant: "default" | "secondary
 };
 
 const typeMap: Record<number, string> = {
-  1: "任务申诉",
+  1: "作品申诉",
 };
 
 function resolveAppealId(appealId?: string) {
@@ -170,9 +171,15 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
             </Badge>
           </div>
           <div className="flex justify-between py-2 border-b">
-            <span className="text-muted-foreground text-sm">关联ID</span>
-            <a href={`/admin/task-detail?id=${appeal.target_id}`} className="text-primary hover:underline font-mono text-sm">
-              {appeal.target_id}
+            <span className="text-muted-foreground text-sm">作品ID</span>
+            <a href={`/admin/work-detail?id=${appeal.claim_id || "-"}`} className="text-primary hover:underline font-mono text-sm">
+              {appeal.claim_id || "-"}
+            </a>
+          </div>
+          <div className="flex justify-between py-2 border-b">
+            <span className="text-muted-foreground text-sm">任务ID</span>
+            <a href={`/admin/task-detail?id=${appeal.task_id || "-"}`} className="text-primary hover:underline font-mono text-sm">
+              {appeal.task_id || "-"}
             </a>
           </div>
           <div className="flex justify-between py-2 border-b">
