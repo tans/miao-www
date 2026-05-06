@@ -13,6 +13,7 @@ interface Appeal {
   id: number;
   type: number;
   claim_id?: number;
+  target_id?: number;
   task_id?: number;
   user_id: number;
   reason: string;
@@ -140,9 +141,9 @@ export function Appeals() {
                         <Badge variant="outline">{typeMap[appeal.type] || "未知"}</Badge>
                       </TableCell>
                       <TableCell className="font-mono text-xs">
-                        {appeal.claim_id ? (
-                          <a href={`/admin/work-detail?id=${appeal.claim_id}`} className="text-primary hover:underline">
-                            {appeal.claim_id}
+                        {appeal.claim_id || appeal.target_id ? (
+                          <a href={`/admin/work-detail?id=${appeal.claim_id || appeal.target_id}`} className="text-primary hover:underline">
+                            {appeal.claim_id || appeal.target_id}
                           </a>
                         ) : "-"}
                       </TableCell>
