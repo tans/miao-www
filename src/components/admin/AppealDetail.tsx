@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { api } from "@/lib/api";
+import { api, resolveAssetUrl } from "@/lib/api";
 import { toast } from "sonner";
 
 interface AppealDetailProps {
@@ -19,12 +19,34 @@ interface Appeal {
   type: number;
   status: number;
   claim_id?: number;
+  target_id?: number;
   task_id?: number;
   user_id: number;
   created_at: string;
   handle_at?: string;
   reason?: string;
   result?: string;
+}
+
+interface WorkMedia {
+  file_path: string;
+  file_type?: string;
+  thumbnail_path?: string;
+}
+
+interface WorkPreview {
+  id: number;
+  task_id?: number;
+  claim_id?: number;
+  creator_id?: number;
+  content?: string;
+  status?: number;
+  review_result?: number | null;
+  review_at?: string;
+  created_at?: string;
+  materials?: WorkMedia[];
+  images?: string[];
+  videos?: string[];
 }
 
 const statusMap: Record<number, { label: string; variant: "default" | "secondary" | "outline" }> = {
@@ -35,6 +57,20 @@ const statusMap: Record<number, { label: string; variant: "default" | "secondary
 
 const typeMap: Record<number, string> = {
   1: "作品申诉",
+};
+
+const workStatusMap: Record<number, string> = {
+  1: "已认领",
+  2: "待验收",
+  3: "已验收",
+  4: "已取消",
+  5: "已超时",
+};
+
+const reviewResultMap: Record<number, string> = {
+  1: "通过",
+  2: "未通过",
+  3: "举报",
 };
 
 function resolveAppealId(appealId?: string) {
@@ -66,10 +102,32 @@ function resolveAppealId(appealId?: string) {
   return NaN;
 }
 
+function resolveRelatedWorkId(appeal: Appeal | null) {
+  const relatedId = appeal?.claim_id ?? appeal?.target_id;
+  return Number.isFinite(relatedId) && (relatedId || 0) > 0 ? relatedId : NaN;
+}
+
+function isImageType(fileType?: string) {
+  const value = (fileType || "").toLowerCase();
+  return value.startsWith("image");
+}
+
+function isVideoType(fileType?: string) {
+  const value = (fileType || "").toLowerCase();
+  return value.startsWith("video");
+}
+
+function uniqueUrls(urls: string[]) {
+  return Array.from(new Set(urls.filter(Boolean)));
+}
+
 export function AppealDetail({ appealId }: AppealDetailProps) {
   const [appeal, setAppeal] = useState<Appeal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [work, setWork] = useState<WorkPreview | null>(null);
+  const [workLoading, setWorkLoading] = useState(false);
+  const [workError, setWorkError] = useState("");
   const [handleStatus, setHandleStatus] = useState("accepted");
   const [handleReply, setHandleReply] = useState("");
 
@@ -96,7 +154,15 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
     try {
       const res = await api.getAppealDetail(id);
       if (res.code === 0) {
-        setAppeal(res.data as Appeal);
+        const nextAppeal = res.data as Appeal;
+        setAppeal(nextAppeal);
+        const relatedWorkId = resolveRelatedWorkId(nextAppeal);
+        if (Number.isFinite(relatedWorkId) && relatedWorkId > 0) {
+          void loadWork(relatedWorkId);
+        } else {
+          setWork(null);
+          setWorkError("");
+        }
       } else {
         setError(res.message);
       }
@@ -104,6 +170,25 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
       setError("加载失败");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadWork(id: number) {
+    setWorkLoading(true);
+    setWorkError("");
+    try {
+      const res = await api.getWorkDetail(id);
+      if (res.code === 0) {
+        setWork(res.data as WorkPreview);
+      } else {
+        setWork(null);
+        setWorkError(res.message || "加载作品失败");
+      }
+    } catch (e) {
+      setWork(null);
+      setWorkError("加载作品失败");
+    } finally {
+      setWorkLoading(false);
     }
   }
 
@@ -149,6 +234,20 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
     return <div className="text-center py-12 text-muted-foreground">加载中...</div>;
   }
 
+  const relatedWorkId = resolveRelatedWorkId(appeal);
+  const imageUrls = uniqueUrls([
+    ...((work?.materials || [])
+      .filter((material) => isImageType(material.file_type))
+      .map((material) => resolveAssetUrl(material.thumbnail_path || material.file_path))),
+    ...((work?.images || []).map((url) => resolveAssetUrl(url))),
+  ]);
+  const videoItems = uniqueUrls([
+    ...((work?.materials || [])
+      .filter((material) => isVideoType(material.file_type))
+      .map((material) => resolveAssetUrl(material.file_path))),
+    ...((work?.videos || []).map((url) => resolveAssetUrl(url))),
+  ]).map((src) => ({ src, poster: "" }));
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card className="lg:col-span-2">
@@ -171,16 +270,24 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
             </Badge>
           </div>
           <div className="flex justify-between py-2 border-b">
-            <span className="text-muted-foreground text-sm">作品ID</span>
-            <a href={`/admin/work-detail?id=${appeal.claim_id || "-"}`} className="text-primary hover:underline font-mono text-sm">
-              {appeal.claim_id || "-"}
-            </a>
+            <span className="text-muted-foreground text-sm">关联作品ID</span>
+            {Number.isFinite(relatedWorkId) && relatedWorkId > 0 ? (
+              <a href={`/admin/work-detail?id=${relatedWorkId}`} className="text-primary hover:underline font-mono text-sm">
+                {relatedWorkId}
+              </a>
+            ) : (
+              <span className="text-sm">-</span>
+            )}
           </div>
           <div className="flex justify-between py-2 border-b">
             <span className="text-muted-foreground text-sm">任务ID</span>
-            <a href={`/admin/task-detail?id=${appeal.task_id || "-"}`} className="text-primary hover:underline font-mono text-sm">
-              {appeal.task_id || "-"}
-            </a>
+            {appeal.task_id ? (
+              <a href={`/admin/task-detail?id=${appeal.task_id}`} className="text-primary hover:underline font-mono text-sm">
+                {appeal.task_id}
+              </a>
+            ) : (
+              <span className="text-sm">-</span>
+            )}
           </div>
           <div className="flex justify-between py-2 border-b">
             <span className="text-muted-foreground text-sm">用户ID</span>
@@ -196,6 +303,118 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
             <span className="text-muted-foreground text-sm">处理时间</span>
             <span className="text-sm">{appeal.handle_at ? new Date(appeal.handle_at).toLocaleString("zh-CN") : "-"}</span>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="lg:col-span-2">
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <CardTitle>作品预览</CardTitle>
+          {work?.id ? (
+            <a href={`/admin/work-detail?id=${work.id}`} className="text-sm text-primary hover:underline">
+              查看完整作品
+            </a>
+          ) : null}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {workLoading ? (
+            <div className="text-sm text-muted-foreground">作品加载中...</div>
+          ) : workError ? (
+            <Alert>
+              <AlertDescription>{workError}</AlertDescription>
+            </Alert>
+          ) : !work ? (
+            <div className="text-sm text-muted-foreground">暂无关联作品</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground text-sm">作品ID</span>
+                  <span className="font-mono text-sm">{work.id}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground text-sm">关联认领ID</span>
+                  <span className="font-mono text-sm">{work.claim_id || "-"}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground text-sm">任务ID</span>
+                  {work.task_id ? (
+                    <a href={`/admin/task-detail?id=${work.task_id}`} className="text-primary hover:underline font-mono text-sm">
+                      {work.task_id}
+                    </a>
+                  ) : (
+                    <span className="text-sm">-</span>
+                  )}
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground text-sm">创作者ID</span>
+                  {work.creator_id ? (
+                    <a href={`/admin/user-detail?id=${work.creator_id}`} className="text-primary hover:underline font-mono text-sm">
+                      {work.creator_id}
+                    </a>
+                  ) : (
+                    <span className="text-sm">-</span>
+                  )}
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground text-sm">状态</span>
+                  <Badge variant="outline">{work.status ? workStatusMap[work.status] || "未知" : "未知"}</Badge>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground text-sm">审核结果</span>
+                  <span className="text-sm">
+                    {work.review_result ? reviewResultMap[work.review_result] || "未知" : "待审核"}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground text-sm">提交时间</span>
+                  <span className="text-sm">{work.created_at ? new Date(work.created_at).toLocaleString("zh-CN") : "-"}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground text-sm">审核时间</span>
+                  <span className="text-sm">{work.review_at ? new Date(work.review_at).toLocaleString("zh-CN") : "-"}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">作品内容</div>
+                <div className="whitespace-pre-wrap rounded-lg border bg-muted/30 p-3 text-sm">
+                  {work.content || "无文字内容"}
+                </div>
+              </div>
+
+              {imageUrls.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">图片素材</div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {imageUrls.map((url, index) => (
+                      <img
+                        key={`${url}-${index}`}
+                        src={url}
+                        alt={`作品图片 ${index + 1}`}
+                        className="h-40 w-full rounded-lg border object-cover bg-muted"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {videoItems.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">视频素材</div>
+                  <div className="space-y-3">
+                    {videoItems.map((item, index) => (
+                      <video
+                        key={`${item.src}-${index}`}
+                        controls
+                        src={item.src}
+                        className="w-full max-h-96 rounded-lg border bg-black"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 
