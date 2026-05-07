@@ -456,10 +456,16 @@ class ApiClient {
     return this.request<Appeal>(`/api/v1/admin/appeals/${id}`)
   }
 
-  async handleAppeal(id: number, accepted: boolean, result: string, action?: 'adopt' | 'eliminate' | 'reject') {
+  async handleAppeal(
+    id: number,
+    accepted: boolean,
+    result: string,
+    comment: string,
+    action?: 'adopt' | 'eliminate' | 'reject'
+  ) {
     return this.request<void>(`/api/v1/admin/appeals/${id}/handle`, {
       method: 'PUT',
-      body: JSON.stringify({ accepted, result, action }),
+      body: JSON.stringify({ accepted, result, comment, action }),
     })
   }
 

@@ -26,6 +26,7 @@ interface Appeal {
   handle_at?: string;
   reason?: string;
   result?: string;
+  decision_text?: string;
 }
 
 interface WorkMedia {
@@ -129,7 +130,9 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
   const [workLoading, setWorkLoading] = useState(false);
   const [workError, setWorkError] = useState("");
   const [handleStatus, setHandleStatus] = useState("adopt");
+  const [handleResult, setHandleResult] = useState("accepted");
   const [handleReply, setHandleReply] = useState("");
+  const availableActions = handleResult === "accepted" ? ["adopt", "eliminate"] : ["reject"];
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
@@ -200,7 +203,9 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
 
     if (!confirm("确定提交处理结果？")) return;
 
-    const accepted = handleStatus !== "reject";
+    const action = handleStatus as "adopt" | "eliminate" | "reject";
+    const accepted = handleResult === "accepted";
+    const resultText = accepted ? "通过申诉" : "拒绝申诉";
     const id = resolveAppealId(
       appealId || new URLSearchParams(window.location.search).get("id") || ""
     );
@@ -210,7 +215,7 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
     }
 
     try {
-      const res = await api.handleAppeal(id, accepted, handleReply, handleStatus as "adopt" | "eliminate" | "reject");
+      const res = await api.handleAppeal(id, accepted, resultText, handleReply, action);
       if (res.code === 0) {
         toast.success("处理成功");
         loadAppeal(id);
@@ -427,13 +432,24 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
         </CardContent>
       </Card>
 
-      {appeal.result && (
+      {(appeal.decision_text || appeal.result) && (
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>处理结果</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="whitespace-pre-wrap text-sm">{appeal.result}</div>
+          <CardContent className="space-y-3">
+            {appeal.decision_text && (
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">处理结论</div>
+                <div className="text-sm">{appeal.decision_text}</div>
+              </div>
+            )}
+            {appeal.result && (
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">回复说明</div>
+                <div className="whitespace-pre-wrap text-sm">{appeal.result}</div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -445,17 +461,63 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="handle-status">处理结果</Label>
+              <Label htmlFor="handle-result">处理结果</Label>
+              <div className="relative">
+                <select
+                  id="handle-result"
+                  className="h-8 pl-3 pr-8 rounded-md border border-input bg-transparent text-sm appearance-none cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 w-full"
+                  value={handleResult}
+                  onChange={(e) => {
+                    const nextResult = e.target.value;
+                    setHandleResult(nextResult);
+                    if (nextResult === "accepted") {
+                      if (handleStatus === "reject") {
+                        setHandleStatus("adopt");
+                      }
+                    } else {
+                      setHandleStatus("reject");
+                    }
+                  }}
+                >
+                  <option value="accepted">通过申诉</option>
+                  <option value="rejected">拒绝申诉</option>
+                </select>
+                <svg
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="handle-status">资金处理动作</Label>
               <div className="relative">
                 <select
                   id="handle-status"
                   className="h-8 pl-3 pr-8 rounded-md border border-input bg-transparent text-sm appearance-none cursor-pointer hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 w-full"
                   value={handleStatus}
-                  onChange={(e) => setHandleStatus(e.target.value)}
+                  onChange={(e) => {
+                    const nextAction = e.target.value;
+                    setHandleStatus(nextAction);
+                    setHandleResult(nextAction === "reject" ? "rejected" : "accepted");
+                  }}
                 >
-                  <option value="adopt">采纳作品并发放参与奖励+采纳奖励</option>
-                  <option value="eliminate">淘汰作品，不发放奖励</option>
-                  <option value="reject">拒绝申诉，不变更作品资金</option>
+                  {availableActions.includes("adopt") && (
+                    <option value="adopt">采纳作品 补放参与奖励+采纳奖励</option>
+                  )}
+                  {availableActions.includes("eliminate") && (
+                    <option value="eliminate">淘汰作品 补放参与奖励</option>
+                  )}
+                  {availableActions.includes("reject") && (
+                    <option value="reject">拒绝申诉 不变更原诉</option>
+                  )}
                 </select>
                 <svg
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
