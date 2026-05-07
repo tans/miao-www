@@ -191,15 +191,17 @@ export interface Work {
 
 export interface Appeal {
   id: number
-  task_id: number
-  claim_id: number
+  task_id?: number
+  claim_id?: number
   user_id: number
   type: number
   reason: string
   status: number
-  handle_at: string
-  handle_by: number
+  handle_at?: string
+  handle_by?: number
   created_at: string
+  target_id?: number
+  result?: string
 }
 
 export interface Inspiration {
@@ -221,6 +223,32 @@ export interface AISettings {
   ai_api_key: string
   ai_api_endpoint: string
   ai_model: string
+  ocr_access_key_id: string
+  ocr_access_key_secret: string
+  ocr_endpoint: string
+  ocr_security_token: string
+}
+
+export interface MerchantAuthApplication {
+  id: number
+  user_id: number
+  username: string
+  phone: string
+  company_name: string
+  credit_code: string
+  contact_name: string
+  contact_phone: string
+  license_url: string
+  license_preview_url: string
+  status: number
+  status_text: string
+  review_comment: string
+  reviewed_at: string
+  created_at: string
+  updated_at: string
+  business_verified: boolean
+  auto_approve_at: string
+  auto_approve_in_minutes: number
 }
 
 class ApiClient {
@@ -323,6 +351,35 @@ class ApiClient {
     })
   }
 
+  async getMerchantAuthApplications(params?: { page?: number; page_size?: number; status?: string; keyword?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
+    if (params?.status) searchParams.set('status', params.status)
+    if (params?.keyword) searchParams.set('search', params.keyword)
+    return this.request<{ items: MerchantAuthApplication[]; total: number; page: number; page_size: number }>(`/api/v1/admin/merchant-auth?${searchParams}`)
+  }
+
+  async reviewMerchantAuth(userId: number, approved: boolean, comment?: string) {
+    return this.request<void>(`/api/v1/admin/merchant-auth/${userId}/review`, {
+      method: 'PUT',
+      body: JSON.stringify({ approved, comment: comment || '' }),
+    })
+  }
+
+  async updateMerchantAuthStatus(userId: number, status: number, comment?: string) {
+    return this.request<void>(`/api/v1/admin/merchant-auth/${userId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, comment: comment || '' }),
+    })
+  }
+
+  async deleteMerchantAuth(userId: number) {
+    return this.request<void>(`/api/v1/admin/merchant-auth/${userId}`, {
+      method: 'DELETE',
+    })
+  }
+
   // Tasks
   async getUserTransactions(id: number) {
     return this.request<{ transactions: unknown[] }>(`/api/v1/admin/users/${id}/transactions`)
@@ -399,10 +456,10 @@ class ApiClient {
     return this.request<Appeal>(`/api/v1/admin/appeals/${id}`)
   }
 
-  async handleAppeal(id: number, accepted: boolean, result: string) {
+  async handleAppeal(id: number, accepted: boolean, result: string, action?: 'adopt' | 'eliminate' | 'reject') {
     return this.request<void>(`/api/v1/admin/appeals/${id}/handle`, {
       method: 'PUT',
-      body: JSON.stringify({ accepted, result }),
+      body: JSON.stringify({ accepted, result, action }),
     })
   }
 

@@ -1,0 +1,8 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { MerchantAuth } from "@/components/admin/MerchantAuth";
+---
+
+<AdminLayout title="商家认证" activeMenu="merchant_auth">
+  <MerchantAuth client:load />
+</AdminLayout>

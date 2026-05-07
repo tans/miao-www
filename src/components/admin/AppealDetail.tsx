@@ -128,7 +128,7 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
   const [work, setWork] = useState<WorkPreview | null>(null);
   const [workLoading, setWorkLoading] = useState(false);
   const [workError, setWorkError] = useState("");
-  const [handleStatus, setHandleStatus] = useState("accepted");
+  const [handleStatus, setHandleStatus] = useState("adopt");
   const [handleReply, setHandleReply] = useState("");
 
   useEffect(() => {
@@ -200,7 +200,7 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
 
     if (!confirm("确定提交处理结果？")) return;
 
-    const accepted = handleStatus === "accepted";
+    const accepted = handleStatus !== "reject";
     const id = resolveAppealId(
       appealId || new URLSearchParams(window.location.search).get("id") || ""
     );
@@ -210,7 +210,7 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
     }
 
     try {
-      const res = await api.handleAppeal(id, accepted, handleReply);
+      const res = await api.handleAppeal(id, accepted, handleReply, handleStatus as "adopt" | "eliminate" | "reject");
       if (res.code === 0) {
         toast.success("处理成功");
         loadAppeal(id);
@@ -453,8 +453,9 @@ export function AppealDetail({ appealId }: AppealDetailProps) {
                   value={handleStatus}
                   onChange={(e) => setHandleStatus(e.target.value)}
                 >
-                  <option value="accepted">通过申诉</option>
-                  <option value="rejected">拒绝申诉</option>
+                  <option value="adopt">采纳作品并发放参与奖励+采纳奖励</option>
+                  <option value="eliminate">淘汰作品，不发放奖励</option>
+                  <option value="reject">拒绝申诉，不变更作品资金</option>
                 </select>
                 <svg
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"

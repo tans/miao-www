@@ -13,6 +13,10 @@ const EMPTY_FORM: AISettings = {
   ai_api_key: "",
   ai_api_endpoint: "",
   ai_model: "",
+  ocr_access_key_id: "",
+  ocr_access_key_secret: "",
+  ocr_endpoint: "",
+  ocr_security_token: "",
 };
 
 export function ModelConfig() {
@@ -42,6 +46,10 @@ export function ModelConfig() {
           ai_api_key: res.data?.ai_api_key || "",
           ai_api_endpoint: res.data?.ai_api_endpoint || "",
           ai_model: res.data?.ai_model || "",
+          ocr_access_key_id: res.data?.ocr_access_key_id || "",
+          ocr_access_key_secret: res.data?.ocr_access_key_secret || "",
+          ocr_endpoint: res.data?.ocr_endpoint || "",
+          ocr_security_token: res.data?.ocr_security_token || "",
         });
       } else {
         setError(res.message || "加载失败");
@@ -66,14 +74,22 @@ export function ModelConfig() {
         ai_api_key: form.ai_api_key.trim(),
         ai_api_endpoint: form.ai_api_endpoint.trim(),
         ai_model: form.ai_model.trim(),
+        ocr_access_key_id: form.ocr_access_key_id.trim(),
+        ocr_access_key_secret: form.ocr_access_key_secret.trim(),
+        ocr_endpoint: form.ocr_endpoint.trim(),
+        ocr_security_token: form.ocr_security_token.trim(),
       };
       const res = await api.updateAISettings(payload);
       if (res.code === 0) {
-        toast.success("模型配置已保存");
+        toast.success("模型与 OCR 配置已保存");
         setForm({
           ai_api_key: res.data?.ai_api_key || payload.ai_api_key,
           ai_api_endpoint: res.data?.ai_api_endpoint || payload.ai_api_endpoint,
           ai_model: res.data?.ai_model || payload.ai_model,
+          ocr_access_key_id: res.data?.ocr_access_key_id || payload.ocr_access_key_id,
+          ocr_access_key_secret: res.data?.ocr_access_key_secret || payload.ocr_access_key_secret,
+          ocr_endpoint: res.data?.ocr_endpoint || payload.ocr_endpoint,
+          ocr_security_token: res.data?.ocr_security_token || payload.ocr_security_token,
         });
       } else {
         toast.error(res.message || "保存失败");
@@ -86,6 +102,7 @@ export function ModelConfig() {
   }
 
   const hasApiKey = Boolean(form.ai_api_key.trim());
+  const hasOcrKey = Boolean(form.ocr_access_key_id.trim() && form.ocr_access_key_secret.trim());
 
   return (
     <div className="space-y-6">
@@ -95,7 +112,7 @@ export function ModelConfig() {
         </Alert>
       )}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-normal text-muted-foreground">API Key</CardTitle>
@@ -121,6 +138,16 @@ export function ModelConfig() {
           </CardHeader>
           <CardContent className="text-sm font-mono">
             {form.ai_model || "默认后端配置"}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-normal text-muted-foreground">OCR 凭证</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-3">
+            <div className="font-medium">{hasOcrKey ? "已配置" : "未配置"}</div>
+            <Badge variant={hasOcrKey ? "default" : "secondary"}>{hasOcrKey ? "启用" : "待设置"}</Badge>
           </CardContent>
         </Card>
       </div>
@@ -165,9 +192,62 @@ export function ModelConfig() {
                 />
               </div>
 
+              <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold">阿里云 OCR</div>
+                    <div className="text-xs text-muted-foreground">用于营业执照上传后的自动识别回填。</div>
+                  </div>
+                  <Badge variant={hasOcrKey ? "default" : "secondary"}>{hasOcrKey ? "已配置" : "未配置"}</Badge>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">AccessKey ID</label>
+                  <Input
+                    value={form.ocr_access_key_id}
+                    placeholder="LTAI..."
+                    onChange={(e) => updateField("ocr_access_key_id", e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">AccessKey Secret</label>
+                  <Input
+                    type="password"
+                    value={form.ocr_access_key_secret}
+                    placeholder="请输入 AccessKey Secret"
+                    onChange={(e) => updateField("ocr_access_key_secret", e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Endpoint</label>
+                  <Input
+                    value={form.ocr_endpoint}
+                    placeholder="ocr-api.cn-hangzhou.aliyuncs.com"
+                    onChange={(e) => updateField("ocr_endpoint", e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Security Token（可选）</label>
+                  <Input
+                    type="password"
+                    value={form.ocr_security_token}
+                    placeholder="临时凭证可填"
+                    onChange={(e) => updateField("ocr_security_token", e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+
               <Alert>
                 <AlertDescription>
-                  保存后会立即影响小程序“AI帮写”。留空时，后端仍会回退到环境变量配置。
+                  保存后会立即影响小程序“AI帮写”和营业执照自动识别。页面内容以数据库配置为准。
+                  OCR 需要同时填写 AccessKey ID 和 AccessKey Secret 才会显示“已配置”。
                 </AlertDescription>
               </Alert>
 
