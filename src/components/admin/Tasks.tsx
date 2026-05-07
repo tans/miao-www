@@ -15,16 +15,28 @@ interface Task {
   id: number;
   title: string;
   business_name?: string;
-  reward?: number;
+  unit_price?: number;
+  award_price?: number;
   status: string;
   created_at: string;
 }
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  pending: { label: "待审核", variant: "secondary" },
   published: { label: "已上架", variant: "default" },
+  ongoing: { label: "进行中", variant: "default" },
   completed: { label: "已结束", variant: "outline" },
   cancelled: { label: "已取消", variant: "destructive" },
 };
+
+const statusOptions = [
+  { value: "", label: "全部" },
+  { value: "pending", label: "待审核" },
+  { value: "published", label: "已上架" },
+  { value: "ongoing", label: "进行中" },
+  { value: "completed", label: "已结束" },
+  { value: "cancelled", label: "已取消" },
+];
 
 export function Tasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -44,9 +56,13 @@ export function Tasks() {
 
       const res = await api.getTasks(params);
       if (res.code === 0) {
-        setTasks(res.data.tasks || []);
+        const list = (res.data.tasks || []).map((task) => ({
+          ...task,
+          status: String(task.status),
+        }));
+        setTasks(list);
         setTotal(res.data.total || 0);
-        setTotalPages(Math.ceil((res.data.total || 0) / 20));
+        setTotalPages(Math.max(1, Math.ceil((res.data.total || 0) / 20)));
         setCurrentPage(page);
       } else {
         toast.error(res.message);
@@ -108,6 +124,10 @@ export function Tasks() {
   }
 
   const hasFilters = searchKeyword || status;
+  const formatTaskPrice = (task: Task) => {
+    const amount = Number(task.unit_price || 0) + Number(task.award_price || 0);
+    return `¥${amount.toFixed(2)}`;
+  };
 
   return (
     <div className="max-w-[1400px]">
@@ -122,12 +142,7 @@ export function Tasks() {
           />
           <FilterTabs
             client:only="react"
-            options={[
-              { value: "", label: "全部" },
-              { value: "published", label: "已上架" },
-              { value: "completed", label: "已结束" },
-              { value: "cancelled", label: "已取消" },
-            ]}
+            options={statusOptions}
             id="filter-tabs"
             className="mb-0"
             eventName="filter-tabs-change"
@@ -167,10 +182,10 @@ export function Tasks() {
                         <a href={`/admin/task-detail?id=${task.id}`} className="hover:underline">{task.title}</a>
                       </TableCell>
                       <TableCell>{task.business_name || "-"}</TableCell>
-                      <TableCell className="font-mono">¥{((task.reward || 0) / 100).toFixed(2)}</TableCell>
+                      <TableCell className="font-mono">{formatTaskPrice(task)}</TableCell>
                       <TableCell>
                         <Badge variant={statusMap[task.status]?.variant || "default"}>
-                          {statusMap[task.status]?.label || (task.status === "pending" ? "已上架" : "未知")}
+                          {statusMap[task.status]?.label || "未知"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">
@@ -181,7 +196,7 @@ export function Tasks() {
                           <a href={`/admin/task-detail?id=${task.id}`} className="text-primary hover:underline text-sm">
                             详情
                           </a>
-                          {(task.status === "published" || task.status === "pending") && (
+                          {(task.status === "published" || task.status === "ongoing") && (
                             <>
                               <button
                                 className="text-red-600 hover:underline text-sm"

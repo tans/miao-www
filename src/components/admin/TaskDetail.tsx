@@ -10,7 +10,7 @@ import { api, type Claim as AdminClaim, type TaskDetail as AdminTaskDetail } fro
 import { toast } from "sonner";
 
 const statusMap: Record<number, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  1: { label: "已上架", variant: "default" },
+  1: { label: "待审核", variant: "secondary" },
   2: { label: "已上架", variant: "default" },
   3: { label: "进行中", variant: "default" },
   4: { label: "已结束", variant: "outline" },
@@ -74,8 +74,9 @@ export function TaskDetail() {
         const taskData = res.data;
         const rawStatus = taskData.status as number | string;
         const statusMapStrToNum: Record<string, number> = {
-          pending: 2,
+          pending: 1,
           published: 2,
+          ongoing: 3,
           completed: 4,
           cancelled: 5,
         };
