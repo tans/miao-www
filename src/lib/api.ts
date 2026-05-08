@@ -229,6 +229,16 @@ export interface AISettings {
   ocr_security_token: string
 }
 
+export interface SystemSettings {
+  review_days: number
+  submit_days: number
+  grace_days: number
+  report_action: number
+  min_unit_price: number
+  min_award_price: number
+  help_center_doc_url: string
+}
+
 export interface MerchantAuthApplication {
   id: number
   user_id: number
@@ -520,11 +530,11 @@ class ApiClient {
 
   // Settings
   async getSettings() {
-    return this.request<Record<string, string>>('/api/v1/admin/settings')
+    return this.request<SystemSettings>('/api/v1/admin/settings')
   }
 
-  async updateSettings(settings: Record<string, string>) {
-    return this.request<void>('/api/v1/admin/settings', {
+  async updateSettings(settings: Partial<SystemSettings>) {
+    return this.request<SystemSettings>('/api/v1/admin/settings', {
       method: 'PUT',
       body: JSON.stringify(settings),
     })

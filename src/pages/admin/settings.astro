@@ -1,0 +1,11 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { SystemSettings } from "@/components/admin/SystemSettings";
+---
+
+<AdminLayout title="系统设置" activeMenu="settings">
+  <div class="max-w-[900px]">
+    <h1 class="text-2xl font-semibold mb-6">系统设置</h1>
+    <SystemSettings client:load />
+  </div>
+</AdminLayout>
