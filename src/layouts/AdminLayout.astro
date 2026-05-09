@@ -16,7 +16,6 @@ const menuItems = [
   { id: "tasks", label: "任务管理", href: "/admin/tasks", icon: "tasks" },
   { id: "claims", label: "认领管理", href: "/admin/claims", icon: "claims" },
   { id: "works", label: "作品管理", href: "/admin/works", icon: "image" },
-  { id: "inspirations", label: "灵感管理", href: "/admin/inspirations", icon: "stars" },
   { id: "appeals", label: "申诉管理", href: "/admin/appeals", icon: "alert" },
   { id: "finance", label: "资金管理", href: "/admin/finance", icon: "wallet" },
   { id: "settings", label: "系统设置", href: "/admin/settings", icon: "settings" },
@@ -180,21 +179,6 @@ const bottomMenuItems = [
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                         <circle cx="8.5" cy="8.5" r="1.5"></circle>
                         <polyline points="21 15 16 10 5 21"></polyline>
-                      </svg>
-                    )}
-                    {item.id === "inspirations" && (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                       </svg>
                     )}
                     {item.id === "appeals" && (
@@ -400,7 +384,6 @@ const bottomMenuItems = [
               else if (menu === "tasks") value = res.data.total_tasks;
               else if (menu === "claims") value = res.data.total_claims;
               else if (menu === "works") value = res.data.total_works;
-              else if (menu === "inspirations") value = res.data.total_inspirations;
               else if (menu === "appeals") value = res.data.pending_appeals;
 
               if (value) countEl.textContent = String(value);

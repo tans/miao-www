@@ -53,8 +53,8 @@ export function SystemSettings() {
       toast.error("请填写帮助中心腾讯文档链接");
       return;
     }
-    if (!/^https:\/\/docs\.qq\.com\/doc\//.test(nextUrl)) {
-      toast.error("链接格式应为 https://docs.qq.com/doc/...");
+    if (!/^https:\/\/docs\.qq\.com\/(doc|pdf)\//.test(nextUrl)) {
+      toast.error("链接格式应为 https://docs.qq.com/doc/... 或 https://docs.qq.com/pdf/...");
       return;
     }
 

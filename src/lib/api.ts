@@ -31,7 +31,6 @@ export interface DashboardStats {
   total_tasks: number
   active_tasks: number
   total_works: number
-  total_inspirations: number
   total_appeals: number
   pending_tasks: number
   pending_appeals: number
@@ -204,21 +203,6 @@ export interface Appeal {
   result?: string
 }
 
-export interface Inspiration {
-  id: number
-  business_id: number
-  creator_id: number
-  title: string
-  content: string
-  cover_url: string
-  cover_type: string
-  source_claim_id: number
-  status: number
-  likes: number
-  created_at: string
-  updated_at: string
-}
-
 export interface AISettings {
   ai_api_key: string
   ai_api_endpoint: string
@@ -259,6 +243,40 @@ export interface MerchantAuthApplication {
   business_verified: boolean
   auto_approve_at: string
   auto_approve_in_minutes: number
+}
+
+export interface WithdrawOrder {
+  id: number
+  user_id: number
+  username: string
+  nickname?: string
+  phone?: string
+  withdraw_no: string
+  amount: number
+  actual_amount: number
+  commission_amount: number
+  status: number
+  status_text: string
+  channel_txn_id?: string
+  reject_reason?: string
+  package_info?: string
+  transfer_bill_no?: string
+  fail_reason?: string
+  reviewed_by?: number
+  reviewed_at?: string
+  transferred_at?: string
+  created_at: string
+  updated_at: string
+  logs?: Array<{
+    id: number
+    admin_id: number
+    action: string
+    status_before: number
+    status_after: number
+    status_text: string
+    remark: string
+    created_at: string
+  }>
 }
 
 class ApiClient {
@@ -304,13 +322,6 @@ class ApiClient {
   // Auth
   async adminLogin(username: string, password: string) {
     return this.request<{ token: string; user: User }>('/api/v1/admin/login', {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-    })
-  }
-
-  async adminRegister(username: string, password: string) {
-    return this.request<{ token: string; user: User }>('/api/v1/admin/register', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     })
@@ -479,39 +490,6 @@ class ApiClient {
     })
   }
 
-  // Inspirations
-  async getInspirations(params?: { page?: number; page_size?: number; status?: number }) {
-    const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.set('page', String(params.page))
-    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
-    if (params?.status !== undefined) searchParams.set('status', String(params.status))
-    return this.request<{ items: Inspiration[]; inspirations?: Inspiration[]; total: number }>(`/api/v1/admin/inspirations?${searchParams}`)
-  }
-
-  async getInspirationDetail(id: number) {
-    return this.request<Inspiration>(`/api/v1/admin/inspirations/${id}`)
-  }
-
-  async createInspiration(data: Partial<Inspiration>) {
-    return this.request<{ inspiration: Inspiration }>('/api/v1/admin/inspirations', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  }
-
-  async updateInspiration(id: number, data: Partial<Inspiration>) {
-    return this.request<void>(`/api/v1/admin/inspirations/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    })
-  }
-
-  async deleteInspiration(id: number) {
-    return this.request<void>(`/api/v1/admin/inspirations/${id}`, {
-      method: 'DELETE',
-    })
-  }
-
   // Finance
   async getFinanceStats() {
     return this.request<{
@@ -526,6 +504,48 @@ class ApiClient {
     if (params?.page) searchParams.set('page', String(params.page))
     if (params?.page_size) searchParams.set('page_size', String(params.page_size))
     return this.request<{ transactions: unknown[]; total: number }>(`/api/v1/admin/finance/transactions?${searchParams}`)
+  }
+
+  async getWithdrawOrders(params?: { page?: number; page_size?: number; status?: number; search?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
+    if (params?.status !== undefined) searchParams.set('status', String(params.status))
+    if (params?.search) searchParams.set('search', params.search)
+    return this.request<{ items: WithdrawOrder[]; total: number; page: number; page_size: number }>(`/api/v1/admin/withdraw-orders?${searchParams}`)
+  }
+
+  async getWithdrawOrder(id: number) {
+    return this.request<WithdrawOrder>(`/api/v1/admin/withdraw-orders/${id}`)
+  }
+
+  async approveWithdrawOrder(id: number, remark?: string) {
+    return this.request<void>(`/api/v1/admin/withdraw-orders/${id}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify({ remark: remark || '' }),
+    })
+  }
+
+  async rejectWithdrawOrder(id: number, reason: string) {
+    return this.request<void>(`/api/v1/admin/withdraw-orders/${id}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    })
+  }
+
+  async syncWithdrawOrder(id: number) {
+    return this.request<WithdrawOrder>(`/api/v1/admin/withdraw-orders/${id}/sync`, {
+      method: 'PUT',
+    })
+  }
+
+  getWithdrawOrdersExportUrl(params?: { status?: number; search?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.status !== undefined) searchParams.set('status', String(params.status))
+    if (params?.search) searchParams.set('search', params.search)
+    const query = searchParams.toString()
+    const endpoint = `/api/v1/admin/withdraw-orders/export${query ? `?${query}` : ''}`
+    return isDev ? endpoint : `${API_BASE}${endpoint}`
   }
 
   // Settings
