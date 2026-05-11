@@ -23,6 +23,12 @@ npm run build
 ./deploy.sh prod
 ```
 
+说明：
+
+- 生产构建和部署统一走仓库内的 `./deploy.sh prod`
+- 脚本会强制使用 Bun runtime，并直接调用 `node_modules/astro/bin/astro.mjs`
+- 不要再手动用系统 `node` 或 `node_modules/.bin/astro` 执行生产构建，避免旧环境或软链解析异常导致失败
+
 ## 配置
 
 复制 `.env.example` 为 `.env`，填入以下变量：

@@ -8,8 +8,19 @@ if ! command -v bun >/dev/null 2>&1; then
   exit 1
 fi
 
-# 强制用 Bun runtime 执行 Astro，避免落回系统旧版 Node。
-BUILD_CMD="bun run --bun build"
+ASTRO_ENTRY="./node_modules/astro/bin/astro.mjs"
+if [ ! -f "$ASTRO_ENTRY" ]; then
+  echo "缺少 Astro CLI，先执行 bun install"
+  bun install
+fi
+
+if [ ! -f "$ASTRO_ENTRY" ]; then
+  echo "Astro CLI 仍不可用，部署终止"
+  exit 1
+fi
+
+# 强制用 Bun runtime 直连 Astro CLI，避免系统旧版 Node 或 .bin 软链解析异常。
+BUILD_CMD="bun --bun $ASTRO_ENTRY build"
 
 if [ "$MODE" = "prod" ]; then
   export PUBLIC_API_URL="${PUBLIC_API_URL:-https://miao.jisuhudong.com}"
