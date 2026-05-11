@@ -18,6 +18,8 @@ if [ "$MODE" = "prod" ]; then
   exit 0
 fi
 
+export PUBLIC_API_URL="${PUBLIC_API_URL:-https://miao-test.clawos.cc}"
+
 echo "Building Astro project with Bun runtime..."
 $BUILD_CMD
 

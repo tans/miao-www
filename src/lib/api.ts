@@ -1,5 +1,12 @@
 const isDev = import.meta.env.DEV
-const API_BASE = import.meta.env.PUBLIC_API_URL || 'https://miao-test.clawos.cc'
+const PROD_API_BASE = 'https://miao.jisuhudong.com'
+const DEV_API_BASE = 'http://localhost:8888'
+
+function normalizeBaseUrl(value?: string | null) {
+  return (value || '').trim().replace(/\/+$/, '')
+}
+
+const API_BASE = normalizeBaseUrl(import.meta.env.PUBLIC_API_URL) || (isDev ? DEV_API_BASE : PROD_API_BASE)
 
 export function resolveAssetUrl(raw?: string | null) {
   const value = (raw || '').trim()
