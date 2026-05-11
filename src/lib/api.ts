@@ -306,6 +306,42 @@ export interface ExceptionReport {
   created_at: string
 }
 
+export interface WithdrawOrderLog {
+  id: number
+  admin_id: number
+  action: string
+  status_before: number
+  status_after: number
+  status_text?: string
+  remark: string
+  created_at: string
+}
+
+export interface WithdrawOrder {
+  id: number
+  user_id: number
+  username: string
+  nickname?: string
+  phone?: string
+  withdraw_no: string
+  amount: number
+  actual_amount: number
+  commission_amount: number
+  status: number
+  status_text: string
+  channel_txn_id?: string
+  reject_reason?: string
+  package_info?: string
+  transfer_bill_no?: string
+  fail_reason?: string
+  reviewed_by?: number
+  reviewed_at?: string
+  transferred_at?: string
+  created_at: string
+  updated_at?: string
+  logs?: WithdrawOrderLog[]
+}
+
 class ApiClient {
   private token: string | null = null
 
@@ -623,6 +659,39 @@ class ApiClient {
     const query = searchParams.toString()
     const endpoint = `/api/v1/admin/withdraw-orders/export${query ? `?${query}` : ''}`
     return isDev ? endpoint : `${API_BASE}${endpoint}`
+  }
+
+  async getWithdrawOrders(params?: { page?: number; page_size?: number; status?: number | string; search?: string }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
+    if (params?.status !== undefined && params?.status !== '') searchParams.set('status', String(params.status))
+    if (params?.search) searchParams.set('search', params.search)
+    return this.request<{ items: WithdrawOrder[]; total: number; page: number; page_size: number }>(`/api/v1/admin/withdraw-orders?${searchParams}`)
+  }
+
+  async getWithdrawOrder(id: number) {
+    return this.request<WithdrawOrder>(`/api/v1/admin/withdraw-orders/${id}`)
+  }
+
+  async approveWithdrawOrder(id: number, remark?: string) {
+    return this.request<WithdrawOrder>(`/api/v1/admin/withdraw-orders/${id}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify({ remark: remark || '' }),
+    })
+  }
+
+  async rejectWithdrawOrder(id: number, reason: string) {
+    return this.request<void>(`/api/v1/admin/withdraw-orders/${id}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    })
+  }
+
+  async syncWithdrawOrder(id: number) {
+    return this.request<WithdrawOrder>(`/api/v1/admin/withdraw-orders/${id}/sync`, {
+      method: 'PUT',
+    })
   }
 
   // Settings

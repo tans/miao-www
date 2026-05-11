@@ -17,6 +17,12 @@ npm run dev
 npm run build
 ```
 
+## 生产部署
+
+```bash
+./deploy.sh prod
+```
+
 ## 配置
 
 复制 `.env.example` 为 `.env`，填入以下变量：
