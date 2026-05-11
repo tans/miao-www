@@ -1,0 +1,11 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { Withdraws } from "@/components/admin/Withdraws";
+---
+
+<AdminLayout title="提现审核" activeMenu="withdraws">
+  <div class="max-w-[1400px]">
+    <h1 class="text-2xl font-semibold mb-6">提现审核</h1>
+    <Withdraws client:load />
+  </div>
+</AdminLayout>

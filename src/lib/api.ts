@@ -402,8 +402,30 @@ class ApiClient {
   }
 
   // Tasks
-  async getUserTransactions(id: number) {
-    return this.request<{ transactions: unknown[] }>(`/api/v1/admin/users/${id}/transactions`)
+  async getUserTransactions(id: number, params?: { limit?: number; offset?: number }) {
+    const searchParams = new URLSearchParams()
+    if (params?.limit) searchParams.set('limit', String(params.limit))
+    if (params?.offset !== undefined) searchParams.set('offset', String(params.offset))
+    const query = searchParams.toString()
+    return this.request<{
+      transactions: Array<{
+        id: number
+        user_id: number
+        type: number | string
+        type_str?: string
+        type_code?: string
+        amount: number
+        raw_amount?: number
+        balance_before: number
+        balance_after: number
+        remark?: string
+        related_id?: number
+        created_at: string
+      }>
+      total: number
+      limit: number
+      offset: number
+    }>(`/api/v1/admin/users/${id}/transactions${query ? `?${query}` : ''}`)
   }
 
   // Tasks
