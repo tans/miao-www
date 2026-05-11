@@ -80,7 +80,7 @@ export interface Task {
   claimed_count: number
   submitted_count: number
   paid_amount: number
-  status: number
+  status: number | string
   review_deadline_at: string
   end_at: string
   created_at: string
@@ -277,6 +277,33 @@ export interface WithdrawOrder {
     remark: string
     created_at: string
   }>
+}
+
+export interface ExceptionReport {
+  id: number
+  source: string
+  level: string
+  type: string
+  message: string
+  stack?: string
+  method?: string
+  path?: string
+  query?: string
+  status_code?: number
+  request_body?: string
+  response_body?: string
+  user_id?: number
+  username?: string
+  is_admin?: boolean
+  client_ip?: string
+  user_agent?: string
+  page?: string
+  platform?: string
+  app_version?: string
+  device_info?: string
+  extra?: string
+  occurred_at: string
+  created_at: string
 }
 
 class ApiClient {
@@ -559,6 +586,34 @@ class ApiClient {
     return this.request<WithdrawOrder>(`/api/v1/admin/withdraw-orders/${id}/sync`, {
       method: 'PUT',
     })
+  }
+
+  async getExceptionReports(params?: {
+    page?: number
+    page_size?: number
+    source?: string
+    level?: string
+    type?: string
+    status_code?: number | string
+    path?: string
+    keyword?: string
+  }) {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
+    if (params?.source) searchParams.set('source', params.source)
+    if (params?.level) searchParams.set('level', params.level)
+    if (params?.type) searchParams.set('type', params.type)
+    if (params?.status_code !== undefined && params.status_code !== '') {
+      searchParams.set('status_code', String(params.status_code))
+    }
+    if (params?.path) searchParams.set('path', params.path)
+    if (params?.keyword) searchParams.set('keyword', params.keyword)
+    return this.request<{ items: ExceptionReport[]; total: number; page: number; page_size: number }>(`/api/v1/exceptions?${searchParams}`)
+  }
+
+  async getExceptionReport(id: number) {
+    return this.request<ExceptionReport>(`/api/v1/exceptions/${id}`)
   }
 
   getWithdrawOrdersExportUrl(params?: { status?: number; search?: string }) {

@@ -37,10 +37,12 @@ function formatTaskStatus(status: number | string | undefined) {
     "3": "进行中",
     "4": "已结束",
     "5": "已取消",
+    "6": "已暂停",
     pending: "已上架",
     published: "已上架",
     completed: "已结束",
     cancelled: "已取消",
+    paused: "已暂停",
   };
   return map[String(status ?? "")] || "未知";
 }

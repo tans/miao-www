@@ -17,6 +17,7 @@ const menuItems = [
   { id: "claims", label: "认领管理", href: "/admin/claims", icon: "claims" },
   { id: "works", label: "作品管理", href: "/admin/works", icon: "image" },
   { id: "appeals", label: "申诉管理", href: "/admin/appeals", icon: "alert" },
+  { id: "exceptions", label: "异常报错", href: "/admin/exceptions", icon: "alert-octagon" },
   { id: "finance", label: "资金管理", href: "/admin/finance", icon: "wallet" },
   { id: "withdraws", label: "提现审核", href: "/admin/withdraws", icon: "hand-coins" },
   { id: "settings", label: "系统设置", href: "/admin/settings", icon: "settings" },
@@ -197,6 +198,23 @@ const bottomMenuItems = [
                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
                         <line x1="12" y1="9" x2="12" y2="13"></line>
                         <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                    )}
+                    {item.id === "exceptions" && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
                       </svg>
                     )}
                     {item.id === "finance" && (

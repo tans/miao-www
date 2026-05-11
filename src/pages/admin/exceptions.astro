@@ -1,0 +1,8 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { ExceptionReports } from "@/components/admin/ExceptionReports";
+---
+
+<AdminLayout title="异常报错" activeMenu="exceptions">
+  <ExceptionReports client:load />
+</AdminLayout>

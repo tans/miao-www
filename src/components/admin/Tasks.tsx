@@ -27,6 +27,7 @@ const statusMap: Record<string, { label: string; variant: "default" | "secondary
   ongoing: { label: "进行中", variant: "default" },
   completed: { label: "已结束", variant: "outline" },
   cancelled: { label: "已取消", variant: "destructive" },
+  paused: { label: "已暂停", variant: "secondary" },
 };
 
 const statusOptions = [
@@ -35,6 +36,7 @@ const statusOptions = [
   { value: "published", label: "已上架" },
   { value: "ongoing", label: "进行中" },
   { value: "completed", label: "已结束" },
+  { value: "paused", label: "已暂停" },
   { value: "cancelled", label: "已取消" },
 ];
 
@@ -102,13 +104,16 @@ export function Tasks() {
     return () => clearTimeout(timeoutId);
   };
 
-  async function handleOffline(id: number) {
-    if (!confirm("确定下架该任务？")) return;
+  async function handleTaskStatus(id: number, action: "pause" | "resume") {
+    const nextStatus = action === "pause" ? 6 : 2;
+    const confirmText = action === "pause" ? "确定暂停该任务？" : "确定继续该任务？";
+    const successText = action === "pause" ? "任务已暂停" : "任务已继续";
+    if (!confirm(confirmText)) return;
 
     try {
-      const res = await api.updateTask(id, { status: 5 });
+      const res = await api.updateTask(id, { status: nextStatus });
       if (res.code === 0) {
-        toast.success("任务已下架");
+        toast.success(successText);
         loadTasks(currentPage, status, searchKeyword);
       } else {
         toast.error("操作失败: " + res.message);
@@ -197,14 +202,20 @@ export function Tasks() {
                             详情
                           </a>
                           {(task.status === "published" || task.status === "ongoing") && (
-                            <>
-                              <button
-                                className="text-red-600 hover:underline text-sm"
-                                onClick={() => handleOffline(task.id)}
-                              >
-                                下架
-                              </button>
-                            </>
+                            <button
+                              className="text-amber-600 hover:underline text-sm"
+                              onClick={() => handleTaskStatus(task.id, "pause")}
+                            >
+                              暂停
+                            </button>
+                          )}
+                          {task.status === "paused" && (
+                            <button
+                              className="text-primary hover:underline text-sm"
+                              onClick={() => handleTaskStatus(task.id, "resume")}
+                            >
+                              继续
+                            </button>
                           )}
                         </div>
                       </TableCell>

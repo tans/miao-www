@@ -15,6 +15,7 @@ const statusMap: Record<number, { label: string; variant: "default" | "secondary
   3: { label: "进行中", variant: "default" },
   4: { label: "已结束", variant: "outline" },
   5: { label: "已取消", variant: "destructive" },
+  6: { label: "已暂停", variant: "secondary" },
 };
 
 const claimStatusMap: Record<number, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -79,6 +80,7 @@ export function TaskDetail() {
           ongoing: 3,
           completed: 4,
           cancelled: 5,
+          paused: 6,
         };
         const totalCount = taskData.total_count ?? (taskData.unit_price ? Math.floor((taskData.total_budget || 0) / taskData.unit_price) : 0);
         const totalBudget = taskData.total_budget ?? (taskData.unit_price || 0) * totalCount;
@@ -140,16 +142,19 @@ export function TaskDetail() {
     }
   }
 
-  async function handleOffline() {
+  async function handleTaskStatus(action: "pause" | "resume") {
     const taskId = new URLSearchParams(window.location.search).get("id");
     const id = parseInt(taskId || "");
     if (isNaN(id)) return;
-    if (!confirm("确定下架该任务？")) return;
+    const nextStatus = action === "pause" ? 6 : 2;
+    const confirmText = action === "pause" ? "确定暂停该任务？" : "确定继续该任务？";
+    const successText = action === "pause" ? "任务已暂停" : "任务已继续";
+    if (!confirm(confirmText)) return;
 
     try {
-      const res = await api.updateTask(id, { status: 5 });
+      const res = await api.updateTask(id, { status: nextStatus });
       if (res.code === 0) {
-        toast.success("任务已下架");
+        toast.success(successText);
         loadTask(id);
       } else {
         toast.error("操作失败: " + res.message);
@@ -278,15 +283,22 @@ export function TaskDetail() {
         </Card>
       )}
 
-      {(task.status === 2 || task.status === 3) && (
+      {(task.status === 2 || task.status === 3 || task.status === 6) && (
         <Card>
           <CardHeader>
             <CardTitle>任务操作</CardTitle>
           </CardHeader>
           <CardContent className="flex gap-3">
-            <Button onClick={handleOffline} variant="destructive">
-              下架任务
-            </Button>
+            {(task.status === 2 || task.status === 3) && (
+              <Button onClick={() => handleTaskStatus("pause")} variant="secondary">
+                暂停任务
+              </Button>
+            )}
+            {task.status === 6 && (
+              <Button onClick={() => handleTaskStatus("resume")}>
+                继续任务
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
