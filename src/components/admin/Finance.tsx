@@ -22,6 +22,7 @@ interface Transaction {
   user_id: number;
   type: string;
   type_str?: string;
+  type_code?: string;
   amount: number;
   raw_amount?: number;
   balance_before: number;
@@ -42,6 +43,47 @@ function formatTime(value?: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString("zh-CN");
+}
+
+function formatWithdrawRefundRemark(remark?: string) {
+  const raw = String(remark || "").trim();
+  if (!raw) {
+    return "提现退回，金额已退回余额";
+  }
+
+  let cleaned = raw
+    .replace(/^提现退回[:：]?\s*/, "")
+    .replace(/^账款提现退款[,，]?\s*/, "")
+    .trim();
+
+  const reasonMatch = cleaned.match(/(?:^|[，,])\s*原因[:：]\s*(.+)$/);
+  let reasonText = reasonMatch ? String(reasonMatch[1] || "").trim() : "";
+
+  if (!reasonText && /管理员拒绝|打款失败|转账失败/.test(cleaned)) {
+    reasonText = cleaned;
+  }
+
+  if (!reasonText) {
+    return "提现退回，金额已退回余额";
+  }
+
+  reasonText = reasonText
+    .replace(/^管理员拒绝[:：]?\s*/, "管理员拒绝（")
+    .replace(/^打款失败[:：]?\s*/, "打款失败（")
+    .replace(/^微信打款失败[:：]?\s*/, "微信打款失败（");
+
+  if (/（[^）]*$/.test(reasonText)) {
+    reasonText += "）";
+  }
+
+  return `提现退回，金额已退回余额。原因：${reasonText}`;
+}
+
+function formatTransactionRemark(tx: Transaction) {
+  if (String(tx.type_code || "").toLowerCase() === "withdraw_refund") {
+    return formatWithdrawRefundRemark(tx.remark || tx.description);
+  }
+  return tx.remark || tx.description || "-";
 }
 
 function formatMoney(value?: number) {
@@ -437,7 +479,7 @@ export function Finance() {
                       <TableCell className="font-mono text-muted-foreground text-xs">
                         {(tx.balance_before ?? 0).toFixed(2)} → {(tx.balance_after ?? 0).toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">{tx.remark || tx.description || "-"}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{formatTransactionRemark(tx)}</TableCell>
                       <TableCell className="text-muted-foreground text-xs">{formatTime(tx.created_at)}</TableCell>
                     </TableRow>
                   ))}
